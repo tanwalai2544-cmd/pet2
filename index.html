@@ -60,7 +60,7 @@
             <div class="w-9 h-9 rounded-full bg-brand-600 flex items-center justify-center text-white shrink-0 font-bold text-xs">LINE</div>
             <div class="flex-1">
                 <p class="text-xs text-slate-400">แจ้งเตือนระบบนับสต็อก (Log_001)</p>
-                <p class="text-sm font-semibold">คลิกเพื่อเข้าสู่ระบบรายงานประจำวัน</p>
+                <p class="text-sm font-semibold">มีรายการสินค้าต้องตรวจเช็คประจำวัน</p>
             </div>
             <button onclick="dismissToast()" class="text-xs bg-slate-800 px-3 py-1.5 rounded-lg text-slate-300 hover:text-white">ปิด</button>
         </div>
@@ -71,7 +71,7 @@
                 <div class="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto text-2xl font-bold">✓</div>
                 <div>
                     <h3 class="text-base font-bold text-slate-800" id="modal-title">สำเร็จ</h3>
-                    <p class="text-xs text-slate-500 mt-1" id="modal-desc">อัปเดตจำนวนสต็อกเรียบร้อยแล้ว</p>
+                    <p class="text-xs text-slate-500 mt-1" id="modal-desc">ดำเนินการเรียบร้อยแล้ว</p>
                 </div>
                 <button onclick="closeModal()" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 rounded-xl text-xs transition">ตกลง</button>
             </div>
@@ -85,9 +85,9 @@
             role: 'staff', 
             currentStep: 'task_list', 
             tasks: [
-                { id: '2564789214568', name: 'อาหารเม็ดแมวโต สูตรปลาทะเล ควบคุมความเค็ม 1kg', originalSystemQty: 45, countedQty: '', unit: 'ถุง', status: 'pending', updatedToSheet: false },
-                { id: '5684256698752', name: 'ทรายแมวเต้าหู้ธรรมชาติ กลิ่นนมฮอกไกโด 6L', originalSystemQty: 12, countedQty: '', unit: 'ถุง', status: 'pending', updatedToSheet: false },
-                { id: '2354128965587', name: 'ขนมแมวเลีย ซุปเปอร์ซอฟท์ แพ็คยักษ์ (รสไก่และปลาทูน่า)', originalSystemQty: 120, countedQty: '', unit: 'ซอง', status: 'pending', updatedToSheet: false }
+                { id: '2564789214568', name: 'อาหารเม็ดแมวโต สูตรปลาทะเล ควบคุมความเค็ม 1kg', originalSystemQty: 8, minLimit: 10, countedQty: '', unit: 'ถุง', needCount: true, updatedToSheet: false }, // ต่ำกว่า Limit (8 <= 10) -> เด้งให้พนักงานนับทันที
+                { id: '5684256698752', name: 'ทรายแมวเต้าหู้ธรรมชาติ กลิ่นนมฮอกไกโด 6L', originalSystemQty: 25, minLimit: 10, countedQty: '', unit: 'ถุง', needCount: false, updatedToSheet: false }, // ปกติ
+                { id: '2354128965587', name: 'ขนมแมวเลีย ซุปเปอร์ซอฟท์ แพ็คยักษ์ (รสไก่และปลาทูน่า)', originalSystemQty: 50, minLimit: 15, countedQty: '', unit: 'ซอง', needCount: false, updatedToSheet: false } // ปกติ
             ],
             selectedTaskIndex: null
         };
@@ -141,18 +141,26 @@
             }
         }
 
-        function requestReCount(index) {
-            appState.tasks[index].status = 'pending';
+        // เถ้าแก่กดสั่งให้นับสต็อกเฉพาะรายการ
+        function ownerTriggerCount(index) {
+            appState.tasks[index].needCount = true;
             appState.tasks[index].countedQty = '';
             appState.tasks[index].updatedToSheet = false;
+            showModal('สั่งให้นับสต็อกแล้ว!', `ระบบได้ส่งคำสั่งไปยังพนักงานเพื่อให้ตรวจสอบรายการ "${appState.tasks[index].name}" เรียบร้อย`);
+        }
 
+        function requestReCount(index) {
+            appState.tasks[index].needCount = true;
+            appState.tasks[index].countedQty = '';
+            appState.tasks[index].updatedToSheet = false;
             switchRole('staff');
-            showModal('ส่งคำสั่งให้นับใหม่แล้ว!', 'ระบบส่งงานกลับไปยังหน้าพนักงานเรียบร้อย กรุณาตรวจสอบอีกครั้ง');
+            showModal('ส่งคำสั่งให้นับใหม่แล้ว!', 'ระบบส่งงานกลับไปยังหน้าพนักงานเรียบร้อย');
         }
 
         function updateGoogleSheet(index) {
             const task = appState.tasks[index];
-            task.originalSystemQty = task.countedQty; // อัปเดตยอดฐานระบบใหม่จริง
+            task.originalSystemQty = task.countedQty; 
+            task.needCount = false; // นับเสร็จและอัปเดตแล้ว เอาออกจากงานที่ต้องนับ
             task.updatedToSheet = true;
             renderApp();
             showModal('อัปเดตสต็อกสำเร็จ!', `อัปเดตจำนวนสินค้า "${task.name}" ลงใน Google Sheets เรียบร้อยแล้ว`);
@@ -198,7 +206,7 @@
 
             if (appState.role === 'owner_dashboard') {
                 badgeEl.innerText = 'Dash_001: ผู้บริหาร';
-                titleEl.innerText = 'แดชบอร์ดสรุปผลสต็อก';
+                titleEl.innerText = 'แดชบอร์ดจัดการสต็อกสินค้า';
                 avatarEl.innerText = 'OWN';
                 container.innerHTML = renderOwnerDashboard();
                 return;
@@ -214,8 +222,8 @@
                 titleEl.innerText = 'ตรวจสอบสินค้า';
                 container.innerHTML = renderCountingScreen();
             } else if (appState.currentStep === 'summary') {
-                badgeEl.innerText = 'สรุปผลสำเร็จ';
-                titleEl.innerText = 'ส่งข้อมูลเรียบร้อย';
+                badgeEl.innerText = 'ส่งรายงานแล้ว';
+                titleEl.innerText = 'สรุปผลการส่งข้อมูล';
                 container.innerHTML = renderSummaryScreen();
             }
         }
@@ -227,7 +235,7 @@
                     <div class="text-center space-y-1">
                         <div class="w-12 h-12 bg-brand-50 text-brand-600 rounded-2xl flex items-center justify-center mx-auto text-xl font-bold mb-1">🔑</div>
                         <h2 class="text-base font-bold text-slate-800">เข้าสู่ระบบสำหรับเถ้าแก่</h2>
-                        <p class="text-xs text-slate-500">กรอกอีเมลและรหัสผ่านเพื่อเข้าดูรายงานสรุป</p>
+                        <p class="text-xs text-slate-500">กรอกอีเมลและรหัสผ่านเพื่อจัดการสต็อก</p>
                     </div>
 
                     <div id="login-error" class="hidden bg-rose-50 border border-rose-200 text-rose-600 text-xs p-3 rounded-xl font-medium"></div>
@@ -262,42 +270,55 @@
         }
 
         function renderStaffTaskList() {
+            // กรองเฉพาะรายการที่ needCount เป็น true (ถึง Limit หรือเถ้าแก่สั่ง)
+            const activeTasks = appState.tasks.filter(t => t.needCount);
+            
             let html = `
             <div class="bg-brand-50 border border-brand-100 p-3.5 rounded-2xl mb-3 flex items-center justify-between">
                 <div>
-                    <p class="text-xs text-brand-700 font-medium">รอบวันที่ 10 พ.ย. 2026</p>
-                    <p class="text-xs font-bold text-brand-900 mt-0.5">เลือกรายการด้านล่างเพื่อเริ่มนับสต็อก</p>
+                    <p class="text-xs text-brand-700 font-medium">รายการที่ต้องตรวจสอบด่วน</p>
+                    <p class="text-xs font-bold text-brand-900 mt-0.5">เนื่องจากถึงจุด Limit หรือเถ้าแก่สั่ง</p>
                 </div>
-                <span class="bg-brand-600 text-white text-xs px-2.5 py-1 rounded-xl font-bold shrink-0">${appState.tasks.filter(t=>t.status==='completed').length}/${appState.tasks.length}</span>
+                <span class="bg-brand-600 text-white text-xs px-2.5 py-1 rounded-xl font-bold shrink-0">${activeTasks.filter(t=>t.countedQty !== '').length}/${activeTasks.length}</span>
             </div>
             <div class="space-y-3">`;
 
-            appState.tasks.forEach((task, idx) => {
-                const isCompleted = task.status === 'completed';
+            if(activeTasks.length === 0) {
                 html += `
-                <div class="bg-white p-3.5 rounded-2xl border ${isCompleted ? 'border-emerald-200 bg-emerald-50/20' : 'border-slate-200 shadow-sm'} flex flex-col gap-2.5 transition">
-                    <div class="flex justify-between items-center">
-                        <span class="text-[11px] font-bold px-2 py-0.5 bg-slate-100 text-slate-600 rounded-md">รหัส: ${task.id}</span>
-                        ${isCompleted ? 
-                            `<span class="text-xs bg-emerald-100 text-emerald-700 px-2.5 py-0.5 rounded-full font-bold">นับแล้ว (${task.countedQty} ${task.unit})</span>` : 
-                            `<span class="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full font-medium">รอนับ</span>`
-                        }
-                    </div>
-
-                    <div>
-                        <h3 class="text-xs sm:text-sm font-bold text-slate-800 leading-snug">${task.name}</h3>
-                        <p class="text-[11px] text-slate-500 mt-0.5">สต็อกในระบบ: <span class="font-semibold text-slate-700">${task.originalSystemQty} ${task.unit}</span></p>
-                    </div>
-
-                    <button onclick="selectTask(${idx})" class="w-full mt-1 py-2.5 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition ${isCompleted ? 'bg-slate-100 hover:bg-slate-200 text-slate-700' : 'bg-brand-600 hover:bg-brand-700 text-white shadow-md shadow-brand-500/20'}">
-                        <span>${isCompleted ? '✏️ แก้ไขจำนวนนับ' : '🔍 เริ่มนับสินค้ารายการนี้'}</span>
-                    </button>
+                <div class="text-center py-12 bg-white rounded-2xl border border-slate-200 p-6 space-y-2">
+                    <div class="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto text-xl font-bold">✓</div>
+                    <h3 class="text-sm font-bold text-slate-800">ไม่มีรายการต้องนับในขณะนี้</h3>
+                    <p class="text-xs text-slate-500">สต็อกสินค้าปกติทุกรายการ หรือรอเถ้าแก่สั่งการ</p>
                 </div>`;
-            });
+            } else {
+                appState.tasks.forEach((task, idx) => {
+                    if (!task.needCount) return; // ข้ามรายการที่ไม่ต้องนับ
+                    const isCompleted = task.countedQty !== '';
+                    html += `
+                    <div class="bg-white p-3.5 rounded-2xl border ${isCompleted ? 'border-emerald-200 bg-emerald-50/20' : 'border-slate-200 shadow-sm'} flex flex-col gap-2.5 transition">
+                        <div class="flex justify-between items-center">
+                            <span class="text-[11px] font-bold px-2 py-0.5 bg-slate-100 text-slate-600 rounded-md">รหัส: ${task.id}</span>
+                            ${isCompleted ? 
+                                `<span class="text-xs bg-emerald-100 text-emerald-700 px-2.5 py-0.5 rounded-full font-bold">นับแล้ว (${task.countedQty} ${task.unit})</span>` : 
+                                `<span class="text-xs bg-brand-100 text-brand-700 px-2 py-0.5 rounded-full font-bold">⚡ ต้องนับด่วน</span>`
+                            }
+                        </div>
+
+                        <div>
+                            <h3 class="text-xs sm:text-sm font-bold text-slate-800 leading-snug">${task.name}</h3>
+                            <p class="text-[11px] text-slate-500 mt-0.5">สต็อกในระบบ: <span class="font-semibold text-slate-700">${task.originalSystemQty} ${task.unit}</span> (Limit: ${task.minLimit})</p>
+                        </div>
+
+                        <button onclick="selectTask(${idx})" class="w-full mt-1 py-2.5 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition ${isCompleted ? 'bg-slate-100 hover:bg-slate-200 text-slate-700' : 'bg-brand-600 hover:bg-brand-700 text-white shadow-md shadow-brand-500/20'}">
+                            <span>${isCompleted ? '✏️ แก้ไขจำนวนนับ' : '🔍 เริ่มนับสินค้ารายการนี้'}</span>
+                        </button>
+                    </div>`;
+                });
+            }
 
             html += `</div>`;
 
-            const allDone = appState.tasks.every(t => t.status === 'completed');
+            const allDone = activeTasks.length > 0 && activeTasks.every(t => t.countedQty !== '');
             if (allDone) {
                 html += `
                 <div class="mt-4 pb-2">
@@ -342,10 +363,6 @@
                     </div>
                 </div>
 
-                <div class="bg-brand-50 border border-brand-100 p-3 rounded-2xl text-xs text-brand-800 leading-relaxed">
-                    💡 หากยอดไม่ตรงกับระบบ ระบบจะคำนวณส่วนต่างเพื่อส่งสรุปให้เถ้าแก่ตรวจสอบทันที
-                </div>
-
                 <div class="pt-3 flex gap-2.5">
                     <button onclick="appState.currentStep='task_list'; renderApp();" class="flex-1 bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 font-bold py-3.5 rounded-2xl transition text-xs shadow-sm">ย้อนกลับ</button>
                     <button onclick="saveCount()" class="flex-[2] bg-slate-900 hover:bg-slate-800 text-white font-bold py-3.5 px-4 rounded-2xl shadow-lg transition text-xs">ยืนยันจำนวนนับ</button>
@@ -362,8 +379,6 @@
             const val = parseInt(inputVal);
             const task = appState.tasks[appState.selectedTaskIndex];
             task.countedQty = val;
-            task.status = 'completed';
-            task.updatedToSheet = false;
 
             appState.currentStep = 'task_list';
             renderApp();
@@ -375,18 +390,19 @@
         }
 
         function renderSummaryScreen() {
+            const activeTasks = appState.tasks.filter(t => t.needCount);
             return `
             <div class="text-center py-4 space-y-3.5">
                 <div class="w-14 h-14 bg-brand-100 text-brand-600 rounded-full flex items-center justify-center mx-auto text-xl font-bold">✓</div>
                 <div>
                     <h2 class="text-lg font-bold text-slate-800">ส่งรายงานสำเร็จเรียบร้อย</h2>
-                    <p class="text-xs text-slate-500 mt-0.5">ข้อมูลถูกบันทึกและส่งแจ้งเตือนให้เถ้าแก่แล้ว</p>
+                    <p class="text-xs text-slate-500 mt-0.5">ข้อมูลถูกส่งไปยังแดชบอร์ดของเถ้าแก่แล้ว</p>
                 </div>
 
                 <div class="bg-white rounded-2xl p-3.5 border border-slate-200 text-left space-y-2 shadow-sm">
                     <p class="text-[11px] font-bold text-slate-400 uppercase">สรุปผลการตรวจสอบสต็อก</p>
-                    ${appState.tasks.map(t => {
-                        const diff = t.countedQty !== '' ? t.countedQty - t.originalSystemQty : 0;
+                    ${activeTasks.map(t => {
+                        const diff = t.countedQty - t.originalSystemQty;
                         const diffText = diff > 0 ? `เกินมา +${diff}` : (diff < 0 ? `น้อยกว่า ${diff}` : 'ตรงกัน');
                         const isDiff = diff !== 0;
                         return `
@@ -395,22 +411,19 @@
                                 <span class="font-bold text-slate-700">${t.id}</span>
                                 <span class="text-slate-500 ml-1">${t.name}</span>
                             </div>
-                            <span class="font-bold shrink-0 ${isDiff ? 'text-brand-600' : 'text-emerald-600'}">${t.countedQty !== '' ? t.countedQty : 0} ${t.unit} (${isDiff ? diffText : '✓ ตรง'})</span>
+                            <span class="font-bold shrink-0 ${isDiff ? 'text-brand-600' : 'text-emerald-600'}">${t.countedQty} ${t.unit} (${isDiff ? diffText : '✓ ตรง'})</span>
                         </div>`;
                     }).join('')}
                 </div>
 
-                <div class="pt-2 space-y-2">
-                    <button onclick="switchRole('owner_login')" class="w-full bg-brand-600 text-white font-bold py-3 rounded-2xl shadow-lg shadow-brand-500/20 transition text-xs">ดูมุมมองเถ้าแก่ (เข้าสู่ระบบ)</button>
-                    <button onclick="resetSystem()" class="w-full bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2.5 rounded-2xl transition text-xs">เริ่มรอบนับใหม่ (พนักงาน)</button>
+                <div class="pt-2">
+                    <button onclick="switchRole('owner_login')" class="w-full bg-brand-600 text-white font-bold py-3 rounded-2xl shadow-lg shadow-brand-500/20 transition text-xs">ไปยังหน้าเถ้าแก่เพื่ออัปเดตสต็อกใน Sheet</button>
                 </div>
             </div>`;
         }
 
         function renderOwnerDashboard() {
             const totalItems = appState.tasks.length;
-            const completedItems = appState.tasks.filter(t => t.status === 'completed').length;
-            const discrepancies = appState.tasks.filter(t => t.status === 'completed' && t.countedQty !== t.originalSystemQty).length;
 
             return `
             <div class="space-y-3.5">
@@ -419,74 +432,74 @@
                         <span class="text-[10px] bg-brand-50 text-brand-600 px-2 py-0.5 rounded-full font-bold">ผู้ดูแลระบบสูงสุด</span>
                         <h2 class="text-xs font-bold text-slate-800 mt-1">Pets.station681@gmail.com</h2>
                     </div>
-                    <button onclick="switchRole('staff')" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-xl font-semibold transition">ออกจากระบบ</button>
-                </div>
-
-                <div class="grid grid-cols-2 gap-3">
-                    <div class="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm">
-                        <span class="text-[11px] text-slate-400 font-medium">สถานะการนับวันนี้</span>
-                        <p class="text-lg font-bold text-slate-800 mt-0.5">${completedItems}/${totalItems} <span class="text-xs font-normal text-slate-500">รายการ</span></p>
-                    </div>
-                    <div class="bg-brand-50 p-3 rounded-2xl border border-brand-100 shadow-sm">
-                        <span class="text-[11px] text-brand-600 font-medium">พบสินค้าส่วนต่าง</span>
-                        <p class="text-lg font-bold text-brand-600 mt-0.5">${discrepancies} <span class="text-xs font-normal text-brand-400">รายการ</span></p>
-                    </div>
+                    <button onclick="switchRole('staff')" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-xl font-semibold transition">มุมมองพนักงาน</button>
                 </div>
 
                 <div class="bg-white rounded-2xl border border-slate-200 p-3.5 shadow-sm space-y-3">
                     <div class="flex justify-between items-center">
-                        <h3 class="text-xs font-bold text-slate-800">จัดการและตรวจสอบผลนับสต็อก (Dash_001)</h3>
-                        <span class="text-[10px] bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full font-bold">เรียลไทม์</span>
+                        <h3 class="text-xs font-bold text-slate-800">📦 รายการสินค้าทั้งหมดในระบบ (Google Sheets)</h3>
+                        <span class="text-[10px] bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full font-bold">ซิงค์แล้ว</span>
                     </div>
 
-                    <div class="space-y-2.5 pt-1">
+                    <p class="text-[11px] text-slate-500">ระบบจะแจ้งเตือนพนักงานเมื่อสต็อกถึง Limit หรือเถ้าแก่กดสั่งให้นับด้วยตนเอง</p>
+
+                    <div class="space-y-3 pt-1">
                         ${appState.tasks.map((t, idx) => {
+                            const isLowStock = t.originalSystemQty <= t.minLimit;
                             const diff = t.countedQty !== '' ? t.countedQty - t.originalSystemQty : 0;
-                            const isDiff = diff !== 0;
                             const diffLabel = diff > 0 ? `เกินมา +${diff} ${t.unit}` : (diff < 0 ? `น้อยกว่า ${diff} ${t.unit}` : 'ตรงกัน');
 
                             return `
-                            <div class="p-3 bg-slate-50 rounded-2xl flex flex-col gap-2 border border-slate-200">
+                            <div class="p-3 bg-slate-50 rounded-2xl flex flex-col gap-2.5 border ${t.needCount ? 'border-brand-300 bg-brand-50/20' : 'border-slate-200'}">
                                 <div class="flex justify-between items-start">
-                                    <div class="truncate max-w-[200px]">
+                                    <div class="truncate max-w-[210px]">
                                         <div class="flex items-center gap-1.5">
-                                            <span class="text-[10px] font-bold text-slate-500 bg-white px-1.5 py-0.2 rounded border border-slate-200">${t.id}</span>
-                                            <p class="text-xs font-bold text-slate-800 truncate">${t.name}</p>
+                                            <span class="text-[10px] font-bold text-slate-500 bg-white px-1.5 py-0.2 rounded border border-slate-200">บาร์โค้ด: ${t.id}</span>
                                         </div>
-                                        <p class="text-[11px] text-slate-600 mt-1">
-                                            ระบบเดิม: <span class="font-semibold">${t.originalSystemQty}</span> | 
-                                            นับจริง: <span class="font-bold text-brand-600">${t.countedQty !== '' ? t.countedQty : 'รอนับ'}</span> (${t.unit})
-                                        </p>
+                                        <p class="text-xs font-bold text-slate-800 mt-1 truncate">${t.name}</p>
                                     </div>
                                     <div>
-                                        ${t.status === 'completed' ? 
-                                            (isDiff ? `<span class="text-[10px] bg-brand-100 text-brand-700 px-2 py-1 rounded-lg font-bold shrink-0 block text-center">⚠️ ${diffLabel}</span>` : '<span class="text-[10px] bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-lg font-bold shrink-0">✓ ตรงกัน</span>') :
-                                            '<span class="text-[10px] bg-slate-200 text-slate-600 px-2.5 py-1 rounded-lg font-medium shrink-0">⏳ รอนับ</span>'
-                                        }
+                                        ${isLowStock ? '<span class="text-[10px] bg-brand-100 text-brand-700 px-2 py-0.5 rounded-full font-bold">⚠️ ถึงจุด Limit</span>' : '<span class=\"text-[10px] bg-emerald-100 text-emerald-700 px-2.5 py-0.5 rounded-full font-bold\">✓ ปกติ</span>'}
                                     </div>
                                 </div>
 
-                                ${t.status === 'completed' ? `
-                                    <div class="flex gap-2 pt-1 border-t border-slate-200/60">
-                                        <button onclick="requestReCount(${idx})" class="flex-1 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 font-bold py-2 px-3 rounded-xl text-[11px] transition shadow-xs flex items-center justify-center gap-1">
-                                            <span>🔄 สั่งนับใหม่</span>
-                                        </button>
-                                        <button onclick="updateGoogleSheet(${idx})" class="flex-1 ${t.updatedToSheet ? 'bg-emerald-600 text-white' : 'bg-slate-900 hover:bg-slate-800 text-white'} font-bold py-2 px-3 rounded-xl text-[11px] transition shadow-xs flex items-center justify-center gap-1">
-                                            <span>${t.updatedToSheet ? '✓ อัปเดตชีทแล้ว' : '📊 อัปเดตสต็อกใน Sheet'}</span>
-                                        </button>
+                                <div class="grid grid-cols-2 gap-2 text-[11px] bg-white p-2.5 rounded-xl border border-slate-200">
+                                    <div>
+                                        <span class="text-slate-400 block">จำนวนคงเหลือ (Sheet):</span>
+                                        <span class="font-bold text-slate-800 text-xs">${t.originalSystemQty} ${t.unit}</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-slate-400 block">แจ้งเตือนขั้นต่ำ (Limit):</span>
+                                        <span class="font-bold text-brand-600 text-xs">${t.minLimit} ${t.unit}</span>
+                                    </div>
+                                </div>
+
+                                ${t.countedQty !== '' ? `
+                                    <div class="text-[11px] bg-emerald-50 border border-emerald-200 p-2 rounded-xl text-emerald-800 flex justify-between items-center">
+                                        <span>พนักงานนับได้จริง: <strong>${t.countedQty} ${t.unit}</strong> (${diffLabel})</span>
                                     </div>
                                 ` : ''}
+
+                                <!-- ปุ่มจัดการของเถ้าแก่ -->
+                                <div class="flex gap-2 pt-1">
+                                    ${t.countedQty !== '' ? `
+                                        <button onclick="updateGoogleSheet(${idx})" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-3 rounded-xl text-[11px] transition shadow-xs">
+                                            📊 อัปเดตสต็อกใน Sheet
+                                        </button>
+                                        <button onclick="requestReCount(${idx})" class="bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 font-bold py-2 px-3 rounded-xl text-[11px] transition shadow-xs">
+                                            🔄 ให้พนักงานนับใหม่
+                                        </button>
+                                    ` : `
+                                        <button onclick="ownerTriggerCount(${idx})" class="w-full ${t.needCount ? 'bg-amber-600 hover:bg-amber-700 text-white' : 'bg-slate-900 hover:bg-slate-800 text-white'} font-bold py-2 px-3 rounded-xl text-[11px] transition shadow-xs flex items-center justify-center gap-1.5">
+                                            <span>${t.needCount ? '⚡ กำลังสั่งให้พนักงานนับอยู่ (กดเพื่อย้ำ)' : '🔔 สั่งให้นับสต็อกรายการนี้'}</span>
+                                        </button>
+                                    `}
+                                </div>
                             </div>`;
                         }).join('')}
                     </div>
                 </div>
             </div>`;
-        }
-
-        function resetSystem() {
-            appState.currentStep = 'task_list';
-            appState.tasks.forEach(t => { t.status = 'pending'; t.countedQty = ''; t.updatedToSheet = false; });
-            renderApp();
         }
     </script>
 </body>
