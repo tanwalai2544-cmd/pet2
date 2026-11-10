@@ -165,9 +165,14 @@
                 appState.currentStep = 'task_list';
                 btnStaff.className = "px-2.5 py-1 rounded-full bg-brand-600 font-semibold transition text-white";
                 btnOwner.className = "px-2.5 py-1 rounded-full bg-slate-700 font-semibold transition text-slate-300";
-            } else {
+            } else if(role === 'owner_login') {
                 appState.role = 'owner_login';
                 appState.currentStep = 'login';
+                btnOwner.className = "px-2.5 py-1 rounded-full bg-brand-600 font-semibold transition text-white";
+                btnStaff.className = "px-2.5 py-1 rounded-full bg-slate-700 font-semibold transition text-slate-300";
+            } else if(role === 'owner_dashboard') {
+                appState.role = 'owner_dashboard';
+                appState.currentStep = 'dashboard';
                 btnOwner.className = "px-2.5 py-1 rounded-full bg-brand-600 font-semibold transition text-white";
                 btnStaff.className = "px-2.5 py-1 rounded-full bg-slate-700 font-semibold transition text-slate-300";
             }
@@ -253,7 +258,7 @@
             const badgeEl = document.getElementById('app-badge');
             const avatarEl = document.getElementById('user-avatar');
 
-            if (appState.role === 'owner_login') {
+            if (appState.role === 'owner_login' || appState.currentStep === 'login') {
                 badgeEl.innerText = 'Log_002: ตรวจสอบสิทธิ์';
                 titleEl.innerText = 'เข้าสู่ระบบ (เถ้าแก่ / บัญชี)';
                 avatarEl.innerText = '🔐';
@@ -261,7 +266,7 @@
                 return;
             }
 
-            if (appState.role === 'owner_dashboard') {
+            if (appState.role === 'owner_dashboard' || appState.currentStep === 'dashboard') {
                 badgeEl.innerText = 'Dash_001: ผู้บริหาร';
                 titleEl.innerText = 'แดชบอร์ดจัดการสต็อกสินค้า';
                 avatarEl.innerText = 'OWN';
@@ -591,6 +596,7 @@
                     statusBadge = `<span class="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-bold">✓ สต็อกปกติ</span>`;
                 }
 
+                // ปุ่มกดฝั่งเถ้าแก่: ถ้ายัังไม่นับและสั่งไปแล้ว ให้ขึ้นปุ่มเหลืองและ "ล็อก" (Disabled)
                 let actionButton = '';
                 if (t.countedQty !== '') {
                     actionButton = `
