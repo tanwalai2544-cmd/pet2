@@ -81,19 +81,61 @@
 
     <!-- SCRIPT LOGIC -->
     <script>
-        // ใช้ฐานข้อมูลสินค้ากลางชุดเดียวกันทั้งระบบ (ผสาน Product จาก Sheet และสถานะสต็อก)
+        // โหลดข้อมูลสินค้าจริง 30 รายการ พร้อมเพิ่มสถานะระบบสต็อก
+        const productsFromSheet = [
+            { code: "202407260002", name: "Kaniva หมา รสไก่ 1 กก.", brand: "อาหารสุนัข", unit: "ถุง", price: 150 },
+            { code: "8850477015951", name: "Luvcare สุนัขพันธุ์กลาง รสตับ 500g", brand: "อาหารสุนัข", unit: "ถุง", price: 85 },
+            { code: "8850477033337", name: "SMH gold holistic สุนัขโต 1.5kg.", brand: "อาหารสุนัข", unit: "ถุง", price: 275 },
+            { code: "8850477037014", name: "Apro โต ตับย่าง 1 กก.", brand: "อาหารสุนัข", unit: "ถุง", price: 60 },
+            { code: "8851759450385", name: "JH Meat as Meals รสไก่เม็ดนิ่ม 500g.", brand: "อาหารสุนัข", unit: "ถุง", price: 219 },
+
+            { code: "8859720701016", name: "Smillie แมว รสแซลมอน", brand: "อาหารแมว", unit: "ถุง", price: 50 },
+            { code: "8850011066999", name: "PurinaOne HairBall 380g.", brand: "อาหารแมว", unit: "ถุง", price: 140 },
+            { code: "8850477002500", name: "Me-o Gold อินดอร์ 400g", brand: "อาหารแมว", unit: "ถุง", price: 99 },
+            { code: "8850477022140", name: "Zoi Cat ทูน่า 1กก..", brand: "อาหารแมว", unit: "ถุง", price: 60 },
+            { code: "8851111045013", name: "Ginno ไก่และทูน่า 380 กรัม", brand: "อาหารแมว", unit: "ถุง", price: 65 },
+
+            { code: "202403200003", name: "Alfafa สับเกรดลัคชู 500g.", brand: "สัตว์ฟันแทะ", unit: "ถุง", price: 75 },
+            { code: "202403200002", name: "Timothy 500g", brand: "สัตว์ฟันแทะ", unit: "ถุง", price: 75 },
+            { code: "8850477017894", name: "SMH ZELECT Adult 500 กรัม", brand: "สัตว์ฟันแทะ", unit: "ถุง", price: 120 },
+            { code: "8859767903251", name: "PetHeng แฮมสเตอร์ รสตับ", brand: "สัตว์ฟันแทะ", unit: "ซอง", price: 69 },
+            { code: "8853527041733", name: "Bok dog กระต่ายสูตรเบอร์รี่ 1 กก.", brand: "สัตว์ฟันแทะ", unit: "ถุง", price: 70 },
+
+            { code: "8859760301078", name: "Buzz/P CG01 ไก่เกรวี่ 70 กรัม", brand: "เปียก", unit: "ซอง", price: 18 },
+            { code: "8859739230439", name: "Kandy C1 Kichen ทูน่าเนื้อไก่ เกรวี่ 70g", brand: "เปียก", unit: "ซอง", price: 15 },
+            { code: "8859739210035", name: "P/kaniva indoor gravy tuna with chicken 70g.", brand: "เปียก", unit: "ซอง", price: 20 },
+            { code: "8851111011018", name: "Gino ปลาทูน่าหน้าแซลมอน 60 กรัม", brand: "เปียก", unit: "ซอง", price: 18 },
+            { code: "8857122849893", name: "Maria 7C ซาดีน+ปลาข้าวสาร 70g", brand: "เปียก", unit: "ซอง", price: 22 },
+
+            { code: "20241401005", name: "อาหารหมูนมไก่ 1 กก.", brand: "Topfeed", unit: "ถุง", price: 35 },
+            { code: "20240410009", name: "ข้าวเปลือกสั้น 1 กก.", brand: "Topfeed", unit: "ถุง", price: 20 },
+            { code: "202312010002", name: "อาหารลูกไก่ 1 กก.", brand: "Topfeed", unit: "ถุง", price: 25 },
+            { code: "6810010000004", name: "จัมปูน 100g", brand: "Topfeed", unit: "ถุง", price: 35 },
+            { code: "202403200001", name: "V55L อาหารหมู่ใหญ่ 30 กก.", brand: "Topfeed", unit: "กระสอบ", price: 430 },
+
+            { code: "18859284600", name: "Omega 3 บำรุงผิวและขน 10เม็ด", brand: "ยาและเวชภัณฑ์", unit: "แผง", price: 75 },
+            { code: "3182550914833", name: "RC RENAL 400g.", brand: "ยาและเวชภัณฑ์", unit: "ถุง", price: 365 },
+            { code: "3661103067374", name: "NexGard Spectra15-30kg/เม็ด", brand: "ยาและเวชภัณฑ์", unit: "เม็ด", price: 500 },
+            { code: "3182550771252", name: "RC GASTRO 2Kg", brand: "ยาและเวชภัณฑ์", unit: "ถุง", price: 1230 },
+            { code: "5414736038051", name: "Revolution Plus สุนัข 2.6-5.0 ม่วง กล่อง", brand: "ยาและเวชภัณฑ์", unit: "กล่อง", price: 950 }
+        ];
+
         const appState = {
             role: 'staff', 
             currentStep: 'task_list', 
-            tasks: [
-                { code: "202407260002", name: "Kaniva หมา รสไก่ 1 กก.", category: "อาหารสุนัข", unit: "ถุง", price: 150, originalSystemQty: 8, minLimit: 10, countedQty: '', needCount: true }, // ต่ำกว่า Limit (8 <= 10) เด้งให้พนักงานนับ
-                { code: "8850477015951", name: "Luvcare สุนัขพันธุ์กลาง รสตับ 500g", category: "อาหารสุนัข", unit: "ถุง", price: 85, originalSystemQty: 25, minLimit: 10, countedQty: '', needCount: false },
-                { code: "8850477033337", name: "SMH gold holistic สุนัขโต 1.5kg.", category: "อาหารสุนัข", unit: "ถุง", price: 275, originalSystemQty: 5, minLimit: 10, countedQty: '', needCount: true }, // ต่ำกว่า Limit
-                { code: "8859720701016", name: "Smillie แมว รสแซลมอน", category: "อาหารแมว", unit: "ถุง", price: 50, originalSystemQty: 40, minLimit: 15, countedQty: '', needCount: false },
-                { code: "8850011066999", name: "PurinaOne HairBall 380g.", category: "อาหารแมว", unit: "ถุง", price: 140, originalSystemQty: 12, minLimit: 10, countedQty: '', needCount: false },
-                { code: "8859760301078", name: "Buzz/P CG01 ไก่เกรวี่ 70 กรัม", category: "เปียก", unit: "ซอง", price: 18, originalSystemQty: 5, minLimit: 20, countedQty: '', needCount: true },
-                { code: "3661103067374", name: "NexGard Spectra15-30kg/เม็ด", category: "ยาและเวชภัณฑ์", unit: "เม็ด", price: 500, originalSystemQty: 30, minLimit: 5, countedQty: '', needCount: false }
-            ],
+            // แปลงข้อมูลสินค้าจริงให้มีสถานะสต็อกและจุด Limit (สมมติให้ตัวแรกต่ำกว่า Limit เพื่อให้เห็นตัวอย่างงานด่วน)
+            tasks: productsFromSheet.map((p, index) => ({
+                id: p.code,
+                name: p.name,
+                category: p.brand,
+                unit: p.unit,
+                price: p.price,
+                originalSystemQty: Math.floor(Math.random() * 30) + 5, // สุ่มจำนวนคงเหลือ
+                minLimit: 10, // กำหนดจุดแจ้งเตือนขั้นต่ำ
+                countedQty: '',
+                needCount: index === 0 ? true : false, // ให้รายการแรกติดสถานะต้องนับ
+                updatedToSheet: false
+            })),
             selectedTaskIndex: null,
             ownerSearchQuery: '',
             ownerCategoryFilter: 'all',
@@ -152,12 +194,14 @@
         function ownerTriggerCount(index) {
             appState.tasks[index].needCount = true;
             appState.tasks[index].countedQty = '';
+            appState.tasks[index].updatedToSheet = false;
             showModal('สั่งให้นับสต็อกแล้ว!', `ระบบได้ส่งคำสั่งไปยังพนักงานเพื่อให้ตรวจสอบรายการ "${appState.tasks[index].name}" เรียบร้อย`);
         }
 
         function requestReCount(index) {
             appState.tasks[index].needCount = true;
             appState.tasks[index].countedQty = '';
+            appState.tasks[index].updatedToSheet = false;
             switchRole('staff');
             showModal('ส่งคำสั่งให้นับใหม่แล้ว!', 'ระบบส่งงานกลับไปยังหน้าพนักงานเรียบร้อย');
         }
@@ -166,6 +210,7 @@
             const task = appState.tasks[index];
             task.originalSystemQty = task.countedQty; 
             task.needCount = false; 
+            task.updatedToSheet = true;
             renderApp();
             showModal('อัปเดตสต็อกสำเร็จ!', `อัปเดตจำนวนสินค้า "${task.name}" ลงใน Google Sheets เรียบร้อยแล้ว`);
         }
@@ -189,7 +234,7 @@
             modal.classList.add('opacity-0');
             box.classList.remove('scale-100');
             box.classList.add('scale-95');
-            setTimeout => {
+            setTimeout(() => {
                 modal.classList.add('hidden');
             }, 200);
         }
@@ -300,7 +345,7 @@
                     html += `
                     <div class="bg-white p-3.5 rounded-2xl border ${isCompleted ? 'border-emerald-200 bg-emerald-50/20' : 'border-slate-200 shadow-sm'} flex flex-col gap-2.5 transition">
                         <div class="flex justify-between items-center">
-                            <span class="text-[11px] font-bold px-2 py-0.5 bg-slate-100 text-slate-600 rounded-md">รหัส: ${task.code}</span>
+                            <span class="text-[11px] font-bold px-2 py-0.5 bg-slate-100 text-slate-600 rounded-md">บาร์โค้ด: ${task.id}</span>
                             ${isCompleted ? 
                                 `<span class="text-xs bg-emerald-100 text-emerald-700 px-2.5 py-0.5 rounded-full font-bold">นับแล้ว (${task.countedQty} ${task.unit})</span>` : 
                                 `<span class="text-xs bg-brand-100 text-brand-700 px-2.5 py-0.5 rounded-full font-bold">⚡ ต้องนับด่วน</span>`
@@ -309,7 +354,7 @@
 
                         <div>
                             <h3 class="text-xs sm:text-sm font-bold text-slate-800 leading-snug">${task.name}</h3>
-                            <p class="text-[11px] text-slate-500 mt-0.5">หมวดหมู่: <span class="text-slate-700 font-semibold">${task.category}</span> | สต็อกระบบ: <span class="font-semibold text-slate-700">${task.originalSystemQty} ${task.unit}</span></p>
+                            <p class="text-[11px] text-slate-500 mt-0.5">ประเภท: <span class="text-slate-700 font-semibold">${task.category}</span> | สต็อกระบบ: <span class="font-semibold text-slate-700">${task.originalSystemQty} ${task.unit}</span></p>
                         </div>
 
                         <button onclick="selectTask(${idx})" class="w-full mt-1 py-2.5 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition ${isCompleted ? 'bg-slate-100 hover:bg-slate-200 text-slate-700' : 'bg-brand-600 hover:bg-brand-700 text-white shadow-md shadow-brand-500/20'}">
@@ -347,7 +392,7 @@
             <div class="space-y-3.5">
                 <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-2">
                     <div class="flex justify-between items-center">
-                        <span class="text-[11px] font-bold px-2 py-0.5 bg-slate-100 text-slate-600 rounded-md">รหัส: ${task.code}</span>
+                        <span class="text-[11px] font-bold px-2 py-0.5 bg-slate-100 text-slate-600 rounded-md">บาร์โค้ด: ${task.id}</span>
                         <span class="text-xs font-semibold text-slate-400">กำลังตรวจนับ</span>
                     </div>
                     <h2 class="text-sm sm:text-base font-bold text-slate-800 leading-snug">${task.name}</h2>
@@ -411,7 +456,7 @@
                         return `
                         <div class="flex justify-between items-center text-xs py-1.5 border-b border-slate-100 last:border-none">
                             <div class="truncate max-w-[160px]">
-                                <span class="font-bold text-slate-700">${t.code}</span>
+                                <span class="font-bold text-slate-700">${t.id}</span>
                                 <span class="text-slate-500 ml-1">${t.name}</span>
                             </div>
                             <span class="font-bold shrink-0 ${isDiff ? 'text-brand-600' : 'text-emerald-600'}">${t.countedQty} ${t.unit} (${isDiff ? diffText : '✓ ตรง'})</span>
@@ -425,6 +470,7 @@
             </div>`;
         }
 
+        // ฟังก์ชันรับค่าการค้นหาและฟิลเตอร์ของเถ้าแก่
         function handleSearchInput(value) {
             appState.ownerSearchQuery = value.toLowerCase();
             updateTaskListDOM();
@@ -445,7 +491,7 @@
             const units = ['all', ...new Set(appState.tasks.map(t => t.unit))];
 
             const filteredTasks = appState.tasks.filter(t => {
-                const matchSearch = t.code.toLowerCase().includes(appState.ownerSearchQuery) ||
+                const matchSearch = t.id.toLowerCase().includes(appState.ownerSearchQuery) ||
                                     t.name.toLowerCase().includes(appState.ownerSearchQuery) ||
                                     t.category.toLowerCase().includes(appState.ownerSearchQuery);
                 const matchCat = appState.ownerCategoryFilter === 'all' || t.category === appState.ownerCategoryFilter;
@@ -465,20 +511,20 @@
 
                 <div class="bg-white rounded-2xl border border-slate-200 p-3.5 shadow-sm space-y-3">
                     <div class="flex justify-between items-center">
-                        <h3 class="text-xs font-bold text-slate-800">📦 คลังสินค้า (Google Sheets)</h3>
+                        <h3 class="text-xs font-bold text-slate-800">📦 คลังสินค้า (Google Sheets - 30 รายการ)</h3>
                         <span class="text-[10px] bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full font-bold">ซิงค์แล้ว</span>
                     </div>
 
-                    <!-- Search Bar -->
+                    <!-- ช่องค้นหา (Search Bar) -->
                     <div class="relative">
                         <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">🔍</span>
-                        <input type="text" id="owner-search-input" value="${appState.ownerSearchQuery}" oninput="handleSearchInput(this.value)" placeholder="ค้นหาด้วยรหัส, ชื่อสินค้า, หมวดหมู่..." 
+                        <input type="text" id="owner-search-input" value="${appState.ownerSearchQuery}" oninput="handleSearchInput(this.value)" placeholder="ค้นหาด้วยบาร์โค้ด 13 หลัก, ชื่อสินค้า, ประเภท..." 
                             class="w-full bg-slate-50 border border-slate-200 focus:border-brand-500 focus:bg-white text-slate-800 text-xs font-medium pl-10 pr-4 py-3 rounded-xl outline-none transition">
                     </div>
 
-                    <!-- Category Filter -->
+                    <!-- Filter ประเภทสินค้า -->
                     <div>
-                        <p class="text-[10px] font-bold text-slate-400 uppercase mb-1.5">กรองตามหมวดหมู่:</p>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase mb-1.5">กรองตามประเภทสินค้า:</p>
                         <div class="flex gap-1.5 overflow-x-auto hide-scrollbar pb-1">
                             ${categories.map(cat => `
                                 <button onclick="setCategoryFilter('${cat}')" class="px-3 py-1 rounded-xl text-[11px] font-bold shrink-0 transition ${appState.ownerCategoryFilter === cat ? 'bg-brand-600 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}">
@@ -488,7 +534,7 @@
                         </div>
                     </div>
 
-                    <!-- Unit Filter -->
+                    <!-- Filter หน่วยสินค้า -->
                     <div>
                         <p class="text-[10px] font-bold text-slate-400 uppercase mb-1.5">กรองตามหน่วย:</p>
                         <div class="flex gap-1.5 overflow-x-auto hide-scrollbar pb-1">
@@ -500,7 +546,7 @@
                         </div>
                     </div>
 
-                    <!-- Product List -->
+                    <!-- รายการสินค้าที่ถูกกรอง (Product List Container) -->
                     <div class="space-y-3 pt-2" id="owner-product-list">
                         ${renderProductCards(filteredTasks)}
                     </div>
@@ -514,7 +560,7 @@
             }
 
             return tasksList.map((t) => {
-                const idx = appState.tasks.findIndex(item => item.code === t.code);
+                const idx = appState.tasks.findIndex(item => item.id === t.id);
                 const isLowStock = t.originalSystemQty <= t.minLimit;
                 const diff = t.countedQty !== '' ? t.countedQty - t.originalSystemQty : 0;
                 const diffLabel = diff > 0 ? `เกินมา +${diff} ${t.unit}` : (diff < 0 ? `น้อยกว่า ${diff} ${t.unit}` : 'ตรงกัน');
@@ -524,7 +570,7 @@
                     <div class="flex justify-between items-start">
                         <div class="truncate max-w-[210px]">
                             <div class="flex items-center gap-1.5">
-                                <span class="text-[10px] font-bold text-slate-500 bg-white px-1.5 py-0.2 rounded border border-slate-200">รหัส: ${t.code}</span>
+                                <span class="text-[10px] font-bold text-slate-500 bg-white px-1.5 py-0.2 rounded border border-slate-200">บาร์โค้ด: ${t.id}</span>
                                 <span class="text-[10px] font-bold text-brand-600 bg-brand-50 px-1.5 py-0.2 rounded">${t.category}</span>
                             </div>
                             <p class="text-xs font-bold text-slate-800 mt-1 truncate">${t.name}</p>
@@ -534,18 +580,14 @@
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-3 gap-2 text-[11px] bg-white p-2.5 rounded-xl border border-slate-200 text-center">
+                    <div class="grid grid-cols-2 gap-2 text-[11px] bg-white p-2.5 rounded-xl border border-slate-200">
                         <div>
-                            <span class="text-slate-400 block text-[10px]">คงเหลือ</span>
+                            <span class="text-slate-400 block">คงเหลือ (Sheet):</span>
                             <span class="font-bold text-slate-800 text-xs">${t.originalSystemQty} ${t.unit}</span>
                         </div>
                         <div>
-                            <span class="text-slate-400 block text-[10px]">ขั้นต่ำ (Limit)</span>
+                            <span class="text-slate-400 block">ขั้นต่ำ (Limit):</span>
                             <span class="font-bold text-brand-600 text-xs">${t.minLimit} ${t.unit}</span>
-                        </div>
-                        <div>
-                            <span class="text-slate-400 block text-[10px]">ราคา</span>
-                            <span class="font-bold text-slate-700 text-xs">${t.price} ฿</span>
                         </div>
                     </div>
 
@@ -578,7 +620,7 @@
             if(!container) return;
 
             const filteredTasks = appState.tasks.filter(t => {
-                const matchSearch = t.code.toLowerCase().includes(appState.ownerSearchQuery) ||
+                const matchSearch = t.id.toLowerCase().includes(appState.ownerSearchQuery) ||
                                     t.name.toLowerCase().includes(appState.ownerSearchQuery) ||
                                     t.category.toLowerCase().includes(appState.ownerSearchQuery);
                 const matchCat = appState.ownerCategoryFilter === 'all' || t.category === appState.ownerCategoryFilter;
