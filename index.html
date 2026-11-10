@@ -32,7 +32,7 @@
         
         <!-- Top Simulation Bar (สำหรับจำลองกดเข้าสู่ระบบจาก LINE) -->
         <div class="bg-slate-900 text-white text-xs px-4 py-2 flex justify-between items-center z-50">
-            <span class="font-medium">📱 จำลองลิงก์ LINE Notify</span>
+            <span class="font-medium">📱 LINE Notify</span>
             <div class="flex gap-2">
                 <button onclick="switchRole('staff')" id="btn-role-staff" class="px-2.5 py-1 rounded-full bg-slate-700 font-semibold transition">พนักงาน</button>
                 <button onclick="switchRole('owner_login')" id="btn-role-owner" class="px-2.5 py-1 rounded-full bg-brand-600 font-semibold transition">เถ้าแก่ (Login)</button>
@@ -59,7 +59,7 @@
         <div id="line-toast" class="absolute top-12 left-4 right-4 bg-slate-900/95 text-white p-3.5 rounded-2xl shadow-lg transform -translate-y-24 opacity-0 transition-all duration-300 z-50 flex items-center gap-3 border border-slate-800">
             <div class="w-9 h-9 rounded-full bg-brand-600 flex items-center justify-center text-white shrink-0 font-bold text-xs">LINE</div>
             <div class="flex-1">
-                <p class="text-xs text-slate-400">แจ้งเตือนระบบนับสต็อก (Log_001)</p>
+                <p class="text-xs text-slate-400">แจ้งเตือนระบบนับสต็อก</p>
                 <p class="text-sm font-semibold">คลิกเพื่อเข้าสู่ระบบรายงานประจำวัน</p>
             </div>
             <button onclick="dismissToast()" class="text-xs bg-slate-800 px-3 py-1.5 rounded-lg text-slate-300 hover:text-white">ปิด</button>
@@ -137,7 +137,7 @@
             const avatarEl = document.getElementById('user-avatar');
 
             if (appState.role === 'owner_login') {
-                badgeEl.innerText = 'Log_002: ตรวจสอบสิทธิ์';
+                badgeEl.innerText = 'ตรวจสอบสิทธิ์';
                 titleEl.innerText = 'เข้าสู่ระบบ (เถ้าแก่ / บัญชี)';
                 avatarEl.innerText = '🔐';
                 container.innerHTML = renderLoginScreen();
@@ -145,7 +145,7 @@
             }
 
             if (appState.role === 'owner_dashboard') {
-                badgeEl.innerText = 'Dash_001: ผู้บริหาร';
+                badgeEl.innerText = 'ผู้บริหาร';
                 titleEl.innerText = 'แดชบอร์ดสรุปผลสต็อก';
                 avatarEl.innerText = 'OWN';
                 container.innerHTML = renderOwnerDashboard();
