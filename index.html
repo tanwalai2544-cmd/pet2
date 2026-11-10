@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ระบบนับสต็อกสินค้า - Pet Station</title>
+    <!-- Google Fonts & Tailwind CSS -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] },
+                    colors: {
+                        brand: { 50: '#fef2f2', 100: '#fee2e2', 500: '#ef4444', 600: '#dc2626', 700: '#b91c1c' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #f1f5f9; color: #1e293b; -webkit-tap-highlight-color: transparent; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="flex justify-center items-center min-h-screen bg-slate-200 p-0 sm:p-4">
+
+    <!-- Mobile Frame Container -->
+    <div class="w-full max-w-md bg-white sm:rounded-3xl sm:shadow-2xl h-screen sm:h-[844px] flex flex-col overflow-hidden relative border border-slate-300">
+        
+        <!-- Top Simulation Bar -->
+        <div class="bg-slate-900 text-white text-xs px-4 py-2 flex justify-between items-center z-50 shrink-0">
+            <span class="font-medium">📱 LINE Notify Link</span>
+            <div class="flex gap-2">
+                <button onclick="switchRole('staff')" id="btn-role-staff" class="px-2.5 py-1 rounded-full bg-brand-600 font-semibold transition text-white">พนักงาน</button>
+                <button onclick="switchRole('owner_login')" id="btn-role-owner" class="px-2.5 py-1 rounded-full bg-slate-700 font-semibold transition text-slate-300">เถ้าแก่ (Login)</button>
+            </div>
+        </div>
+
+        <!-- APP HEADER -->
+        <header class="px-5 py-3 border-b border-slate-100 flex justify-between items-center bg-white sticky top-0 z-40 shrink-0">
+            <div>
+                <span id="app-badge" class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-brand-50 text-brand-600">Task นับสต็อก</span>
+                <h1 id="app-title" class="text-base font-bold text-slate-800 mt-0.5">รายการที่ต้องตรวจสอบ</h1>
+            </div>
+            <div class="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-600 text-sm shrink-0" id="user-avatar">
+                ST
+            </div>
+        </header>
+
+        <!-- MAIN CONTENT AREA -->
+        <main class="flex-1 overflow-y-auto p-4 space-y-3.5 hide-scrollbar bg-slate-50/50 relative" id="main-container">
+            <!-- เนื้อหาเรนเดอร์ไดนามิก -->
+        </main>
+
+        <!-- NOTIFICATION TOAST -->
+        <div id="line-toast" class="absolute top-12 left-4 right-4 bg-slate-900/95 text-white p-3.5 rounded-2xl shadow-lg transform -translate-y-24 opacity-0 transition-all duration-300 z-50 flex items-center gap-3 border border-slate-800">
+            <div class="w-9 h-9 rounded-full bg-brand-600 flex items-center justify-center text-white shrink-0 font-bold text-xs">LINE</div>
+            <div class="flex-1">
+                <p class="text-xs text-slate-400">แจ้งเตือนระบบนับสต็อก (Log_001)</p>
+                <p class="text-sm font-semibold">มีรายการสินค้าต้องตรวจเช็คประจำวัน</p>
+            </div>
+            <button onclick="dismissToast()" class="text-xs bg-slate-800 px-3 py-1.5 rounded-lg text-slate-300 hover:text-white">ปิด</button>
+        </div>
+
+        <!-- CUSTOM POPUP MODAL -->
+        <div id="custom-modal" class="absolute inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden opacity-0 transition-opacity duration-200">
+            <div class="bg-white w-full max-w-xs rounded-3xl p-6 text-center shadow-2xl space-y-4 transform scale-95 transition-transform duration-200" id="modal-content-box">
+                <div class="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto text-2xl font-bold">✓</div>
+                <div>
+                    <h3 class="text-base font-bold text-slate-800" id="modal-title">สำเร็จ</h3>
+                    <p class="text-xs text-slate-500 mt-1" id="modal-desc">ดำเนินการเรียบร้อยแล้ว</p>
+                </div>
+                <button onclick="closeModal()" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 rounded-xl text-xs transition">ตกลง</button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- SCRIPT LOGIC -->
+    <script>
+        // โหลดข้อมูลสินค้าจริง 30 รายการ พร้อมเพิ่มสถานะระบบสต็อก
+        const productsFromSheet = [
+            { code: "202407260002", name: "Kaniva หมา รสไก่ 1 กก.", brand: "อาหารสุนัข", unit: "ถุง", price: 150 },
+            { code: "8850477015951", name: "Luvcare สุนัขพันธุ์กลาง รสตับ 500g", brand: "อาหารสุนัข", unit: "ถุง", price: 85 },
+            { code: "8850477033337", name: "SMH gold holistic สุนัขโต 1.5kg.", brand: "อาหารสุนัข", unit: "ถุง", price: 275 },
+            { code: "8850477037014", name: "Apro โต ตับย่าง 1 กก.", brand: "อาหารสุนัข", unit: "ถุง", price: 60 },
+            { code: "8851759450385", name: "JH Meat as Meals รสไก่เม็ดนิ่ม 500g.", brand: "อาหารสุนัข", unit: "ถุง", price: 219 },
+
+            { code: "8859720701016", name: "Smillie แมว รสแซลมอน", brand: "อาหารแมว", unit: "ถุง", price: 50 },
+            { code: "8850011066999", name: "PurinaOne HairBall 380g.", brand: "อาหารแมว", unit: "ถุง", price: 140 },
+            { code: "8850477002500", name: "Me-o Gold อินดอร์ 400g", brand: "อาหารแมว", unit: "ถุง", price: 99 },
+            { code: "8850477022140", name: "Zoi Cat ทูน่า 1กก..", brand: "อาหารแมว", unit: "ถุง", price: 60 },
+            { code: "8851111045013", name: "Ginno ไก่และทูน่า 380 กรัม", brand: "อาหารแมว", unit: "ถุง", price: 65 },
+
+            { code: "202403200003", name: "Alfafa สับเกรดลัคชู 500g.", brand: "สัตว์ฟันแทะ", unit: "ถุง", price: 75 },
+            { code: "202403200002", name: "Timothy 500g", brand: "สัตว์ฟันแทะ", unit: "ถุง", price: 75 },
+            { code: "8850477017894", name: "SMH ZELECT Adult 500 กรัม", brand: "สัตว์ฟันแทะ", unit: "ถุง", price: 120 },
+            { code: "8859767903251", name: "PetHeng แฮมสเตอร์ รสตับ", brand: "สัตว์ฟันแทะ", unit: "ซอง", price: 69 },
+            { code: "8853527041733", name: "Bok dog กระต่ายสูตรเบอร์รี่ 1 กก.", brand: "สัตว์ฟันแทะ", unit: "ถุง", price: 70 },
+
+            { code: "8859760301078", name: "Buzz/P CG01 ไก่เกรวี่ 70 กรัม", brand: "เปียก", unit: "ซอง", price: 18 },
+            { code: "8859739230439", name: "Kandy C1 Kichen ทูน่าเนื้อไก่ เกรวี่ 70g", brand: "เปียก", unit: "ซอง", price: 15 },
+            { code: "8859739210035", name: "P/kaniva indoor gravy tuna with chicken 70g.", brand: "เปียก", unit: "ซอง", price: 20 },
+            { code: "8851111011018", name: "Gino ปลาทูน่าหน้าแซลมอน 60 กรัม", brand: "เปียก", unit: "ซอง", price: 18 },
+            { code: "8857122849893", name: "Maria 7C ซาดีน+ปลาข้าวสาร 70g", brand: "เปียก", unit: "ซอง", price: 22 },
+
+            { code: "20241401005", name: "อาหารหมูนมไก่ 1 กก.", brand: "Topfeed", unit: "ถุง", price: 35 },
+            { code: "20240410009", name: "ข้าวเปลือกสั้น 1 กก.", brand: "Topfeed", unit: "ถุง", price: 20 },
+            { code: "202312010002", name: "อาหารลูกไก่ 1 กก.", brand: "Topfeed", unit: "ถุง", price: 25 },
+            { code: "6810010000004", name: "จัมปูน 100g", brand: "Topfeed", unit: "ถุง", price: 35 },
+            { code: "202403200001", name: "V55L อาหารหมู่ใหญ่ 30 กก.", brand: "Topfeed", unit: "กระสอบ", price: 430 },
+
+            { code: "18859284600", name: "Omega 3 บำรุงผิวและขน 10เม็ด", brand: "ยาและเวชภัณฑ์", unit: "แผง", price: 75 },
+            { code: "3182550914833", name: "RC RENAL 400g.", brand: "ยาและเวชภัณฑ์", unit: "ถุง", price: 365 },
+            { code: "3661103067374", name: "NexGard Spectra15-30kg/เม็ด", brand: "ยาและเวชภัณฑ์", unit: "เม็ด", price: 500 },
+            { code: "3182550771252", name: "RC GASTRO 2Kg", brand: "ยาและเวชภัณฑ์", unit: "ถุง", price: 1230 },
+            { code: "5414736038051", name: "Revolution Plus สุนัข 2.6-5.0 ม่วง กล่อง", brand: "ยาและเวชภัณฑ์", unit: "กล่อง", price: 950 }
+        ];
+
+        const appState = {
+            role: 'staff', 
+            currentStep: 'task_list', 
+            // แปลงข้อมูลสินค้าจริงให้มีสถานะสต็อกและจุด Limit (สมมติให้ตัวแรกต่ำกว่า Limit เพื่อให้เห็นตัวอย่างงานด่วน)
+            tasks: productsFromSheet.map((p, index) => ({
+                id: p.code,
+                name: p.name,
+                category: p.brand,
+                unit: p.unit,
+                price: p.price,
+                originalSystemQty: Math.floor(Math.random() * 30) + 5, // สุ่มจำนวนคงเหลือ
+                minLimit: 10, // กำหนดจุดแจ้งเตือนขั้นต่ำ
+                countedQty: '',
+                needCount: index === 0 ? true : false, // ให้รายการแรกติดสถานะต้องนับ
+                updatedToSheet: false
+            })),
+            selectedTaskIndex: null,
+            ownerSearchQuery: '',
+            ownerCategoryFilter: 'all',
+            ownerUnitFilter: 'all'
+        };
+
+        window.addEventListener('DOMContentLoaded', () => {
+            renderApp();
+            setTimeout(() => { showToast(); }, 600);
+        });
+
+        function showToast() {
+            const toast = document.getElementById('line-toast');
+            toast.classList.remove('-translate-y-24', 'opacity-0');
+        }
+
+        function dismissToast() {
+            const toast = document.getElementById('line-toast');
+            toast.classList.add('-translate-y-24', 'opacity-0');
+        }
+
+        function switchRole(role) {
+            const btnStaff = document.getElementById('btn-role-staff');
+            const btnOwner = document.getElementById('btn-role-owner');
+            
+            if(role === 'staff') {
+                appState.role = 'staff';
+                appState.currentStep = 'task_list';
+                btnStaff.className = "px-2.5 py-1 rounded-full bg-brand-600 font-semibold transition text-white";
+                btnOwner.className = "px-2.5 py-1 rounded-full bg-slate-700 font-semibold transition text-slate-300";
+            } else {
+                appState.role = 'owner_login';
+                appState.currentStep = 'login';
+                btnOwner.className = "px-2.5 py-1 rounded-full bg-brand-600 font-semibold transition text-white";
+                btnStaff.className = "px-2.5 py-1 rounded-full bg-slate-700 font-semibold transition text-slate-300";
+            }
+            renderApp();
+        }
+
+        function handleOwnerLogin(event) {
+            event.preventDefault();
+            const emailInput = document.getElementById('login-email').value.trim();
+            const passInput = document.getElementById('login-pass').value.trim();
+            const errorBox = document.getElementById('login-error');
+
+            if (emailInput === 'Pets.station681@gmail.com' && passInput === '4321') {
+                appState.role = 'owner_dashboard';
+                appState.currentStep = 'dashboard';
+                renderApp();
+            } else {
+                errorBox.classList.remove('hidden');
+                errorBox.innerText = '⚠️ อีเมลหรือรหัสผ่านไม่ถูกต้อง (ใช้ Pets.station681@gmail.com / 4321)';
+            }
+        }
+
+        function ownerTriggerCount(index) {
+            appState.tasks[index].needCount = true;
+            appState.tasks[index].countedQty = '';
+            appState.tasks[index].updatedToSheet = false;
+            showModal('สั่งให้นับสต็อกแล้ว!', `ระบบได้ส่งคำสั่งไปยังพนักงานเพื่อให้ตรวจสอบรายการ "${appState.tasks[index].name}" เรียบร้อย`);
+        }
+
+        function requestReCount(index) {
+            appState.tasks[index].needCount = true;
+            appState.tasks[index].countedQty = '';
+            appState.tasks[index].updatedToSheet = false;
+            switchRole('staff');
+            showModal('ส่งคำสั่งให้นับใหม่แล้ว!', 'ระบบส่งงานกลับไปยังหน้าพนักงานเรียบร้อย');
+        }
+
+        function updateGoogleSheet(index) {
+            const task = appState.tasks[index];
+            task.originalSystemQty = task.countedQty; 
+            task.needCount = false; 
+            task.updatedToSheet = true;
+            renderApp();
+            showModal('อัปเดตสต็อกสำเร็จ!', `อัปเดตจำนวนสินค้า "${task.name}" ลงใน Google Sheets เรียบร้อยแล้ว`);
+        }
+
+        function showModal(title, desc) {
+            const modal = document.getElementById('custom-modal');
+            const box = document.getElementById('modal-content-box');
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-desc').innerText = desc;
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                box.classList.remove('scale-95');
+                box.classList.add('scale-100');
+            }, 10);
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('custom-modal');
+            const box = document.getElementById('modal-content-box');
+            modal.classList.add('opacity-0');
+            box.classList.remove('scale-100');
+            box.classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 200);
+        }
+
+        function renderApp() {
+            const container = document.getElementById('main-container');
+            const titleEl = document.getElementById('app-title');
+            const badgeEl = document.getElementById('app-badge');
+            const avatarEl = document.getElementById('user-avatar');
+
+            if (appState.role === 'owner_login') {
+                badgeEl.innerText = 'Log_002: ตรวจสอบสิทธิ์';
+                titleEl.innerText = 'เข้าสู่ระบบ (เถ้าแก่ / บัญชี)';
+                avatarEl.innerText = '🔐';
+                container.innerHTML = renderLoginScreen();
+                return;
+            }
+
+            if (appState.role === 'owner_dashboard') {
+                badgeEl.innerText = 'Dash_001: ผู้บริหาร';
+                titleEl.innerText = 'แดชบอร์ดจัดการสต็อกสินค้า';
+                avatarEl.innerText = 'OWN';
+                container.innerHTML = renderOwnerDashboard();
+                return;
+            }
+
+            avatarEl.innerText = 'ST';
+            if (appState.currentStep === 'task_list') {
+                badgeEl.innerText = 'Task ที่ต้องตรวจ';
+                titleEl.innerText = 'รายการสินค้าต้องนับ';
+                container.innerHTML = renderStaffTaskList();
+            } else if (appState.currentStep === 'counting') {
+                badgeEl.innerText = 'บันทึกจำนวนนับจริง';
+                titleEl.innerText = 'ตรวจสอบสินค้า';
+                container.innerHTML = renderCountingScreen();
+            } else if (appState.currentStep === 'summary') {
+                badgeEl.innerText = 'ส่งรายงานแล้ว';
+                titleEl.innerText = 'สรุปผลการส่งข้อมูล';
+                container.innerHTML = renderSummaryScreen();
+            }
+        }
+
+        function renderLoginScreen() {
+            return `
+            <div class="py-2 space-y-4">
+                <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+                    <div class="text-center space-y-1">
+                        <div class="w-12 h-12 bg-brand-50 text-brand-600 rounded-2xl flex items-center justify-center mx-auto text-xl font-bold mb-1">🔑</div>
+                        <h2 class="text-base font-bold text-slate-800">เข้าสู่ระบบสำหรับเถ้าแก่</h2>
+                        <p class="text-xs text-slate-500">กรอกอีเมลและรหัสผ่านเพื่อจัดการสต็อก</p>
+                    </div>
+
+                    <div id="login-error" class="hidden bg-rose-50 border border-rose-200 text-rose-600 text-xs p-3 rounded-xl font-medium"></div>
+
+                    <form onsubmit="handleOwnerLogin(event)" class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1 uppercase">อีเมลผู้ดูแลร้าน</label>
+                            <input type="email" id="login-email" required placeholder="Pets.station681@gmail.com" 
+                                class="w-full bg-slate-50 border border-slate-200 focus:border-brand-500 focus:bg-white text-slate-800 text-sm font-semibold px-4 py-3 rounded-xl outline-none transition">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1 uppercase">รหัสผ่าน (Password)</label>
+                            <input type="password" id="login-pass" required placeholder="••••" 
+                                class="w-full bg-slate-50 border border-slate-200 focus:border-brand-500 focus:bg-white text-slate-800 text-sm font-semibold px-4 py-3 rounded-xl outline-none transition">
+                        </div>
+
+                        <div class="pt-2">
+                            <button type="submit" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-brand-500/20 transition text-sm">
+                                เข้าสู่ระบบแดชบอร์ด
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="bg-slate-100 p-3.5 rounded-2xl border border-slate-200 text-xs text-slate-600 space-y-1">
+                    <p class="font-bold text-slate-700">📌 ข้อมูลทดสอบระบบ:</p>
+                    <p>• Email: <code class="bg-white px-1 py-0.5 rounded text-brand-600 font-bold border border-slate-200">Pets.station681@gmail.com</code></p>
+                    <p>• Password: <code class="bg-white px-1 py-0.5 rounded text-brand-600 font-bold border border-slate-200">4321</code></p>
+                </div>
+            </div>`;
+        }
+
+        function renderStaffTaskList() {
+            const activeTasks = appState.tasks.filter(t => t.needCount);
+            
+            let html = `
+            <div class="bg-brand-50 border border-brand-100 p-3.5 rounded-2xl mb-3 flex items-center justify-between">
+                <div>
+                    <p class="text-xs text-brand-700 font-medium">รายการที่ต้องตรวจสอบด่วน</p>
+                    <p class="text-xs font-bold text-brand-900 mt-0.5">เนื่องจากถึงจุด Limit หรือเถ้าแก่สั่ง</p>
+                </div>
+                <span class="bg-brand-600 text-white text-xs px-2.5 py-1 rounded-xl font-bold shrink-0">${activeTasks.filter(t=>t.countedQty !== '').length}/${activeTasks.length}</span>
+            </div>
+            <div class="space-y-3">`;
+
+            if(activeTasks.length === 0) {
+                html += `
+                <div class="text-center py-12 bg-white rounded-2xl border border-slate-200 p-6 space-y-2">
+                    <div class="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto text-xl font-bold">✓</div>
+                    <h3 class="text-sm font-bold text-slate-800">ไม่มีรายการต้องนับในขณะนี้</h3>
+                    <p class="text-xs text-slate-500">สต็อกสินค้าปกติทุกรายการ หรือรอเถ้าแก่สั่งการ</p>
+                </div>`;
+            } else {
+                appState.tasks.forEach((task, idx) => {
+                    if (!task.needCount) return;
+                    const isCompleted = task.countedQty !== '';
+                    html += `
+                    <div class="bg-white p-3.5 rounded-2xl border ${isCompleted ? 'border-emerald-200 bg-emerald-50/20' : 'border-slate-200 shadow-sm'} flex flex-col gap-2.5 transition">
+                        <div class="flex justify-between items-center">
+                            <span class="text-[11px] font-bold px-2 py-0.5 bg-slate-100 text-slate-600 rounded-md">บาร์โค้ด: ${task.id}</span>
+                            ${isCompleted ? 
+                                `<span class="text-xs bg-emerald-100 text-emerald-700 px-2.5 py-0.5 rounded-full font-bold">นับแล้ว (${task.countedQty} ${task.unit})</span>` : 
+                                `<span class="text-xs bg-brand-100 text-brand-700 px-2.5 py-0.5 rounded-full font-bold">⚡ ต้องนับด่วน</span>`
+                            }
+                        </div>
+
+                        <div>
+                            <h3 class="text-xs sm:text-sm font-bold text-slate-800 leading-snug">${task.name}</h3>
+                            <p class="text-[11px] text-slate-500 mt-0.5">ประเภท: <span class="text-slate-700 font-semibold">${task.category}</span> | สต็อกระบบ: <span class="font-semibold text-slate-700">${task.originalSystemQty} ${task.unit}</span></p>
+                        </div>
+
+                        <button onclick="selectTask(${idx})" class="w-full mt-1 py-2.5 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition ${isCompleted ? 'bg-slate-100 hover:bg-slate-200 text-slate-700' : 'bg-brand-600 hover:bg-brand-700 text-white shadow-md shadow-brand-500/20'}">
+                            <span>${isCompleted ? '✏️ แก้ไขจำนวนนับ' : '🔍 เริ่มนับสินค้ารายการนี้'}</span>
+                        </button>
+                    </div>`;
+                });
+            }
+
+            html += `</div>`;
+
+            const allDone = activeTasks.length > 0 && activeTasks.every(t => t.countedQty !== '');
+            if (allDone) {
+                html += `
+                <div class="mt-4 pb-2">
+                    <button onclick="finishTaskSubmission()" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-3.5 px-4 rounded-2xl shadow-lg shadow-brand-500/20 transition flex items-center justify-center gap-2 text-sm">
+                        <span>ส่งรายงานทั้งหมดให้เถ้าแก่</span>
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                    </button>
+                </div>`;
+            }
+
+            return html;
+        }
+
+        function selectTask(index) {
+            appState.selectedTaskIndex = index;
+            appState.currentStep = 'counting';
+            renderApp();
+        }
+
+        function renderCountingScreen() {
+            const task = appState.tasks[appState.selectedTaskIndex];
+            return `
+            <div class="space-y-3.5">
+                <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-2">
+                    <div class="flex justify-between items-center">
+                        <span class="text-[11px] font-bold px-2 py-0.5 bg-slate-100 text-slate-600 rounded-md">บาร์โค้ด: ${task.id}</span>
+                        <span class="text-xs font-semibold text-slate-400">กำลังตรวจนับ</span>
+                    </div>
+                    <h2 class="text-sm sm:text-base font-bold text-slate-800 leading-snug">${task.name}</h2>
+                    <div class="flex justify-between items-center text-xs border-t border-slate-100 pt-2.5">
+                        <span class="text-slate-500">ยอดสต็อกในระบบ:</span>
+                        <span class="font-bold text-slate-800 text-sm">${task.originalSystemQty} ${task.unit}</span>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1.5">ระบุจำนวนนับจริงหน้าชั้นวาง</label>
+                    <div class="relative">
+                        <input type="number" id="counted-input" value="${task.countedQty}" placeholder="กรอกตัวเลข..." 
+                            class="w-full bg-white border border-slate-200 focus:border-brand-500 text-slate-800 text-lg font-bold px-4 py-3.5 rounded-2xl outline-none transition shadow-sm">
+                        <span class="absolute right-4 top-4 text-sm font-semibold text-slate-400">${task.unit}</span>
+                    </div>
+                </div>
+
+                <div class="pt-3 flex gap-2.5">
+                    <button onclick="appState.currentStep='task_list'; renderApp();" class="flex-1 bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 font-bold py-3.5 rounded-2xl transition text-xs shadow-sm">ย้อนกลับ</button>
+                    <button onclick="saveCount()" class="flex-[2] bg-slate-900 hover:bg-slate-800 text-white font-bold py-3.5 px-4 rounded-2xl shadow-lg transition text-xs">ยืนยันจำนวนนับ</button>
+                </div>
+            </div>`;
+        }
+
+        function saveCount() {
+            const inputVal = document.getElementById('counted-input').value;
+            if(inputVal === '') {
+                alert('กรุณากรอกจำนวนนับจริง');
+                return;
+            }
+            const val = parseInt(inputVal);
+            const task = appState.tasks[appState.selectedTaskIndex];
+            task.countedQty = val;
+
+            appState.currentStep = 'task_list';
+            renderApp();
+        }
+
+        function finishTaskSubmission() {
+            appState.currentStep = 'summary';
+            renderApp();
+        }
+
+        function renderSummaryScreen() {
+            const activeTasks = appState.tasks.filter(t => t.needCount);
+            return `
+            <div class="text-center py-4 space-y-3.5">
+                <div class="w-14 h-14 bg-brand-100 text-brand-600 rounded-full flex items-center justify-center mx-auto text-xl font-bold">✓</div>
+                <div>
+                    <h2 class="text-lg font-bold text-slate-800">ส่งรายงานสำเร็จเรียบร้อย</h2>
+                    <p class="text-xs text-slate-500 mt-0.5">ข้อมูลถูกส่งไปยังแดชบอร์ดของเถ้าแก่แล้ว</p>
+                </div>
+
+                <div class="bg-white rounded-2xl p-3.5 border border-slate-200 text-left space-y-2 shadow-sm">
+                    <p class="text-[11px] font-bold text-slate-400 uppercase">สรุปผลการตรวจสอบสต็อก</p>
+                    ${activeTasks.map(t => {
+                        const diff = t.countedQty - t.originalSystemQty;
+                        const diffText = diff > 0 ? `เกินมา +${diff}` : (diff < 0 ? `น้อยกว่า ${diff}` : 'ตรงกัน');
+                        const isDiff = diff !== 0;
+                        return `
+                        <div class="flex justify-between items-center text-xs py-1.5 border-b border-slate-100 last:border-none">
+                            <div class="truncate max-w-[160px]">
+                                <span class="font-bold text-slate-700">${t.id}</span>
+                                <span class="text-slate-500 ml-1">${t.name}</span>
+                            </div>
+                            <span class="font-bold shrink-0 ${isDiff ? 'text-brand-600' : 'text-emerald-600'}">${t.countedQty} ${t.unit} (${isDiff ? diffText : '✓ ตรง'})</span>
+                        </div>`;
+                    }).join('')}
+                </div>
+
+                <div class="pt-2">
+                    <button onclick="switchRole('owner_login')" class="w-full bg-brand-600 text-white font-bold py-3 rounded-2xl shadow-lg shadow-brand-500/20 transition text-xs">ไปยังหน้าเถ้าแก่เพื่ออัปเดตสต็อกใน Sheet</button>
+                </div>
+            </div>`;
+        }
+
+        // ฟังก์ชันรับค่าการค้นหาและฟิลเตอร์ของเถ้าแก่
+        function handleSearchInput(value) {
+            appState.ownerSearchQuery = value.toLowerCase();
+            updateTaskListDOM();
+        }
+
+        function setCategoryFilter(cat) {
+            appState.ownerCategoryFilter = cat;
+            renderOwnerDashboard();
+        }
+
+        function setUnitFilter(unit) {
+            appState.ownerUnitFilter = unit;
+            renderOwnerDashboard();
+        }
+
+        function renderOwnerDashboard() {
+            const categories = ['all', ...new Set(appState.tasks.map(t => t.category))];
+            const units = ['all', ...new Set(appState.tasks.map(t => t.unit))];
+
+            const filteredTasks = appState.tasks.filter(t => {
+                const matchSearch = t.id.toLowerCase().includes(appState.ownerSearchQuery) ||
+                                    t.name.toLowerCase().includes(appState.ownerSearchQuery) ||
+                                    t.category.toLowerCase().includes(appState.ownerSearchQuery);
+                const matchCat = appState.ownerCategoryFilter === 'all' || t.category === appState.ownerCategoryFilter;
+                const matchUnit = appState.ownerUnitFilter === 'all' || t.unit === appState.ownerUnitFilter;
+                return matchSearch && matchCat && matchUnit;
+            });
+
+            return `
+            <div class="space-y-3.5">
+                <div class="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm flex justify-between items-center">
+                    <div>
+                        <span class="text-[10px] bg-brand-50 text-brand-600 px-2 py-0.5 rounded-full font-bold">ผู้ดูแลระบบสูงสุด</span>
+                        <h2 class="text-xs font-bold text-slate-800 mt-1">Pets.station681@gmail.com</h2>
+                    </div>
+                    <button onclick="switchRole('staff')" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-xl font-semibold transition">มุมมองพนักงาน</button>
+                </div>
+
+                <div class="bg-white rounded-2xl border border-slate-200 p-3.5 shadow-sm space-y-3">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-xs font-bold text-slate-800">📦 คลังสินค้า (Google Sheets - 30 รายการ)</h3>
+                        <span class="text-[10px] bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full font-bold">ซิงค์แล้ว</span>
+                    </div>
+
+                    <!-- ช่องค้นหา (Search Bar) -->
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">🔍</span>
+                        <input type="text" id="owner-search-input" value="${appState.ownerSearchQuery}" oninput="handleSearchInput(this.value)" placeholder="ค้นหาด้วยบาร์โค้ด 13 หลัก, ชื่อสินค้า, ประเภท..." 
+                            class="w-full bg-slate-50 border border-slate-200 focus:border-brand-500 focus:bg-white text-slate-800 text-xs font-medium pl-10 pr-4 py-3 rounded-xl outline-none transition">
+                    </div>
+
+                    <!-- Filter ประเภทสินค้า -->
+                    <div>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase mb-1.5">กรองตามประเภทสินค้า:</p>
+                        <div class="flex gap-1.5 overflow-x-auto hide-scrollbar pb-1">
+                            ${categories.map(cat => `
+                                <button onclick="setCategoryFilter('${cat}')" class="px-3 py-1 rounded-xl text-[11px] font-bold shrink-0 transition ${appState.ownerCategoryFilter === cat ? 'bg-brand-600 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}">
+                                    ${cat === 'all' ? 'ทั้งหมด' : cat}
+                                </button>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <!-- Filter หน่วยสินค้า -->
+                    <div>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase mb-1.5">กรองตามหน่วย:</p>
+                        <div class="flex gap-1.5 overflow-x-auto hide-scrollbar pb-1">
+                            ${units.map(u => `
+                                <button onclick="setUnitFilter('${u}')" class="px-3 py-1 rounded-xl text-[11px] font-bold shrink-0 transition ${appState.ownerUnitFilter === u ? 'bg-slate-900 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}">
+                                    ${u === 'all' ? 'ทุกหน่วย' : u}
+                                </button>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <!-- รายการสินค้าที่ถูกกรอง (Product List Container) -->
+                    <div class="space-y-3 pt-2" id="owner-product-list">
+                        ${renderProductCards(filteredTasks)}
+                    </div>
+                </div>
+            </div>`;
+        }
+
+        function renderProductCards(tasksList) {
+            if (tasksList.length === 0) {
+                return `<div class="text-center py-8 text-xs text-slate-400">ไม่พบรายการสินค้าที่ค้นหา</div>`;
+            }
+
+            return tasksList.map((t) => {
+                const idx = appState.tasks.findIndex(item => item.id === t.id);
+                const isLowStock = t.originalSystemQty <= t.minLimit;
+                const diff = t.countedQty !== '' ? t.countedQty - t.originalSystemQty : 0;
+                const diffLabel = diff > 0 ? `เกินมา +${diff} ${t.unit}` : (diff < 0 ? `น้อยกว่า ${diff} ${t.unit}` : 'ตรงกัน');
+
+                return `
+                <div class="p-3 bg-slate-50 rounded-2xl flex flex-col gap-2.5 border ${t.needCount ? 'border-brand-300 bg-brand-50/20' : 'border-slate-200'}">
+                    <div class="flex justify-between items-start">
+                        <div class="truncate max-w-[210px]">
+                            <div class="flex items-center gap-1.5">
+                                <span class="text-[10px] font-bold text-slate-500 bg-white px-1.5 py-0.2 rounded border border-slate-200">บาร์โค้ด: ${t.id}</span>
+                                <span class="text-[10px] font-bold text-brand-600 bg-brand-50 px-1.5 py-0.2 rounded">${t.category}</span>
+                            </div>
+                            <p class="text-xs font-bold text-slate-800 mt-1 truncate">${t.name}</p>
+                        </div>
+                        <div>
+                            ${isLowStock ? '<span class="text-[10px] bg-brand-100 text-brand-700 px-2 py-0.5 rounded-full font-bold">⚠️ ถึงจุด Limit</span>' : '<span class="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-bold">✓ ปกติ</span>'}
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2 text-[11px] bg-white p-2.5 rounded-xl border border-slate-200">
+                        <div>
+                            <span class="text-slate-400 block">คงเหลือ (Sheet):</span>
+                            <span class="font-bold text-slate-800 text-xs">${t.originalSystemQty} ${t.unit}</span>
+                        </div>
+                        <div>
+                            <span class="text-slate-400 block">ขั้นต่ำ (Limit):</span>
+                            <span class="font-bold text-brand-600 text-xs">${t.minLimit} ${t.unit}</span>
+                        </div>
+                    </div>
+
+                    ${t.countedQty !== '' ? `
+                        <div class="text-[11px] bg-emerald-50 border border-emerald-200 p-2 rounded-xl text-emerald-800 flex justify-between items-center">
+                            <span>พนักงานนับได้จริง: <strong>${t.countedQty} ${t.unit}</strong> (${diffLabel})</span>
+                        </div>
+                    ` : ''}
+
+                    <div class="flex gap-2 pt-1">
+                        ${t.countedQty !== '' ? `
+                            <button onclick="updateGoogleSheet(${idx})" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-3 rounded-xl text-[11px] transition shadow-xs">
+                                📊 อัปเดตสต็อกใน Sheet
+                            </button>
+                            <button onclick="requestReCount(${idx})" class="bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 font-bold py-2 px-3 rounded-xl text-[11px] transition shadow-xs">
+                                🔄 ให้พนักงานนับใหม่
+                            </button>
+                        ` : `
+                            <button onclick="ownerTriggerCount(${idx})" class="w-full ${t.needCount ? 'bg-amber-600 hover:bg-amber-700 text-white' : 'bg-slate-900 hover:bg-slate-800 text-white'} font-bold py-2 px-3 rounded-xl text-[11px] transition shadow-xs flex items-center justify-center gap-1.5">
+                                <span>${t.needCount ? '⚡ กำลังสั่งให้พนักงานนับอยู่ (กดเพื่อย้ำ)' : '🔔 สั่งให้นับสต็อกรายการนี้'}</span>
+                            </button>
+                        `}
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function updateTaskListDOM() {
+            const container = document.getElementById('owner-product-list');
+            if(!container) return;
+
+            const filteredTasks = appState.tasks.filter(t => {
+                const matchSearch = t.id.toLowerCase().includes(appState.ownerSearchQuery) ||
+                                    t.name.toLowerCase().includes(appState.ownerSearchQuery) ||
+                                    t.category.toLowerCase().includes(appState.ownerSearchQuery);
+                const matchCat = appState.ownerCategoryFilter === 'all' || t.category === appState.ownerCategoryFilter;
+                const matchUnit = appState.ownerUnitFilter === 'all' || t.unit === appState.ownerUnitFilter;
+                return matchSearch && matchCat && matchUnit;
+            });
+
+            container.innerHTML = renderProductCards(filteredTasks);
+        }
+    </script>
+</body>
+</html>
