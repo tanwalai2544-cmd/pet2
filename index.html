@@ -51,7 +51,7 @@
         </header>
 
         <!-- MAIN CONTENT AREA -->
-        <main class="flex-1 overflow-y-auto p-4 space-y-3.5 hide-scrollbar bg-slate-50/50" id="main-container">
+        <main class="flex-1 overflow-y-auto p-4 space-y-3.5 hide-scrollbar bg-slate-50/50 relative" id="main-container">
             <!-- เนื้อหาเรนเดอร์ไดนามิก -->
         </main>
 
@@ -65,6 +65,18 @@
             <button onclick="dismissToast()" class="text-xs bg-slate-800 px-3 py-1.5 rounded-lg text-slate-300 hover:text-white">ปิด</button>
         </div>
 
+        <!-- CUSTOM POPUP MODAL (แจ้งเตือนอัปเดตสต็อกสำเร็จ) -->
+        <div id="custom-modal" class="absolute inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden opacity-0 transition-opacity duration-200">
+            <div class="bg-white w-full max-w-xs rounded-3xl p-6 text-center shadow-2xl space-y-4 transform scale-95 transition-transform duration-200" id="modal-content-box">
+                <div class="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto text-2xl font-bold">✓</div>
+                <div>
+                    <h3 class="text-base font-bold text-slate-800" id="modal-title">สำเร็จ</h3>
+                    <p class="text-xs text-slate-500 mt-1" id="modal-desc">อัปเดตจำนวนสต็อกเรียบร้อยแล้ว</p>
+                </div>
+                <button onclick="closeModal()" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 rounded-xl text-xs transition">ตกลง</button>
+            </div>
+        </div>
+
     </div>
 
     <!-- SCRIPT LOGIC -->
@@ -73,9 +85,9 @@
             role: 'staff', 
             currentStep: 'task_list', 
             tasks: [
-                { id: '2564789214568', name: 'อาหารเม็ดแมวโต สูตรปลาทะเล ควบคุมความเค็ม 1kg', systemQty: 45, countedQty: '', unit: 'ถุง', status: 'pending', hasDiscrepancy: false },
-                { id: '5684256698752', name: 'ทรายแมวเต้าหู้ธรรมชาติ กลิ่นนมฮอกไกโด 6L', systemQty: 12, countedQty: '', unit: 'ถุง', status: 'pending', hasDiscrepancy: false },
-                { id: '2354128965587', name: 'ขนมแมวเลีย ซุปเปอร์ซอฟท์ แพ็คยักษ์ (รสไก่และปลาทูน่า)', systemQty: 120, countedQty: '', unit: 'ซอง', status: 'pending', hasDiscrepancy: false }
+                { id: '2564789214568', name: 'อาหารเม็ดแมวโต สูตรปลาทะเล ควบคุมความเค็ม 1kg', systemQty: 45, countedQty: '', unit: 'ถุง', status: 'pending', hasDiscrepancy: false, updatedToSheet: false },
+                { id: '5684256698752', name: 'ทรายแมวเต้าหู้ธรรมชาติ กลิ่นนมฮอกไกโด 6L', systemQty: 12, countedQty: '', unit: 'ถุง', status: 'pending', hasDiscrepancy: false, updatedToSheet: false },
+                { id: '2354128965587', name: 'ขนมแมวเลีย ซุปเปอร์ซอฟท์ แพ็คยักษ์ (รสไก่และปลาทูน่า)', systemQty: 120, countedQty: '', unit: 'ซอง', status: 'pending', hasDiscrepancy: false, updatedToSheet: false }
             ],
             selectedTaskIndex: null
         };
@@ -127,6 +139,51 @@
                 errorBox.classList.remove('hidden');
                 errorBox.innerText = '⚠️ อีเมลหรือรหัสผ่านไม่ถูกต้อง (ใช้ Pets.station681@gmail.com / 4321)';
             }
+        }
+
+        // ฟังก์ชันสั่งให้พนักงานนับใหม่ (Re-count) จากฝั่งเถ้าแก่
+        function requestReCount(index) {
+            appState.tasks[index].status = 'pending';
+            appState.tasks[index].countedQty = '';
+            appState.tasks[index].hasDiscrepancy = false;
+            appState.tasks[index].updatedToSheet = false;
+
+            // สลับหน้าไปฝั่งพนักงานอัตโนมัติเพื่อให้พนักงานเห็นงานที่ต้องนับใหม่
+            switchRole('staff');
+            showModal('ส่งคำสั่งให้นับใหม่แล้ว!', 'ระบบส่งงานกลับไปยังหน้าพนักงานเรียบร้อย กรุณาตรวจสอบอีกครั้ง');
+        }
+
+        // ฟังก์ชันอัปเดตสต็อกลง Google Sheets
+        function updateGoogleSheet(index) {
+            const task = appState.tasks[index];
+            task.systemQty = task.countedQty; // จำลองการอัปเดตยอดในระบบ Sheet
+            task.updatedToSheet = true;
+            renderApp();
+            showModal('อัปเดตสต็อกสำเร็จ!', `อัปเดตจำนวนสินค้า "${task.name}" ลงใน Google Sheets เรียบร้อยแล้ว`);
+        }
+
+        function showModal(title, desc) {
+            const modal = document.getElementById('custom-modal');
+            const box = document.getElementById('modal-content-box');
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-desc').innerText = desc;
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                box.classList.remove('scale-95');
+                box.classList.add('scale-100');
+            }, 10);
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('custom-modal');
+            const box = document.getElementById('modal-content-box');
+            modal.classList.add('opacity-0');
+            box.classList.remove('scale-100');
+            box.classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 200);
         }
 
         function renderApp() {
@@ -226,7 +283,6 @@
                 const isCompleted = task.status === 'completed';
                 html += `
                 <div class="bg-white p-3.5 rounded-2xl border ${isCompleted ? 'border-emerald-200 bg-emerald-50/20' : 'border-slate-200 shadow-sm'} flex flex-col gap-2.5 transition">
-                    <!-- ส่วนหัว: รหัสสินค้าและสถานะ -->
                     <div class="flex justify-between items-center">
                         <span class="text-[11px] font-bold px-2 py-0.5 bg-slate-100 text-slate-600 rounded-md">รหัส: ${task.id}</span>
                         ${isCompleted ? 
@@ -235,13 +291,11 @@
                         }
                     </div>
 
-                    <!-- ชื่อสินค้า (รองรับข้อยาว ไม่ตกขอบ) -->
                     <div>
                         <h3 class="text-xs sm:text-sm font-bold text-slate-800 leading-snug">${task.name}</h3>
                         <p class="text-[11px] text-slate-500 mt-0.5">สต็อกในระบบ: <span class="font-semibold text-slate-700">${task.systemQty} ${task.unit}</span></p>
                     </div>
 
-                    <!-- ปุ่มกดนับสินค้า (ความกว้างเต็มจอ ไม่ตกขอบบน Android เล็ก) -->
                     <button onclick="selectTask(${idx})" class="w-full mt-1 py-2.5 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition ${isCompleted ? 'bg-slate-100 hover:bg-slate-200 text-slate-700' : 'bg-brand-600 hover:bg-brand-700 text-white shadow-md shadow-brand-500/20'}">
                         <span>${isCompleted ? '✏️ แก้ไขจำนวนนับ' : '🔍 เริ่มนับสินค้ารายการนี้'}</span>
                     </button>
@@ -317,6 +371,7 @@
             task.countedQty = val;
             task.status = 'completed';
             task.hasDiscrepancy = (val !== sysQty);
+            task.updatedToSheet = false;
 
             appState.currentStep = 'task_list';
             renderApp();
@@ -382,28 +437,42 @@
                     </div>
                 </div>
 
-                <div class="bg-white rounded-2xl border border-slate-200 p-3.5 shadow-sm space-y-2.5">
+                <div class="bg-white rounded-2xl border border-slate-200 p-3.5 shadow-sm space-y-3">
                     <div class="flex justify-between items-center">
-                        <h3 class="text-xs font-bold text-slate-800">ประวัติการนับสต็อกล่าสุด (Dash_001)</h3>
+                        <h3 class="text-xs font-bold text-slate-800">จัดการและตรวจสอบผลนับสต็อก (Dash_001)</h3>
                         <span class="text-[10px] bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full font-bold">เรียลไทม์</span>
                     </div>
 
-                    <div class="space-y-2 pt-1">
-                        ${appState.tasks.map(t => `
-                            <div class="p-2.5 bg-slate-50 rounded-xl flex justify-between items-center border border-slate-100">
-                                <div class="truncate max-w-[210px]">
-                                    <div class="flex items-center gap-1.5">
-                                        <span class="text-[10px] font-bold text-slate-500 bg-white px-1.5 py-0.2 rounded border border-slate-200">${t.id}</span>
-                                        <p class="text-xs font-bold text-slate-800 truncate">${t.name}</p>
+                    <div class="space-y-2.5 pt-1">
+                        ${appState.tasks.map((t, idx) => `
+                            <div class="p-3 bg-slate-50 rounded-2xl flex flex-col gap-2 border border-slate-200">
+                                <div class="flex justify-between items-start">
+                                    <div class="truncate max-w-[210px]">
+                                        <div class="flex items-center gap-1.5">
+                                            <span class="text-[10px] font-bold text-slate-500 bg-white px-1.5 py-0.2 rounded border border-slate-200">${t.id}</span>
+                                            <p class="text-xs font-bold text-slate-800 truncate">${t.name}</p>
+                                        </div>
+                                        <p class="text-[11px] text-slate-600 mt-1">ระบบ: ${t.systemQty} | นับจริง: <span class="font-bold text-brand-600">${t.countedQty !== '' ? t.countedQty : 'รอนับ'}</span> (${t.unit})</p>
                                     </div>
-                                    <p class="text-[10px] text-slate-500 mt-0.5">ระบบ: ${t.systemQty} | นับจริง: ${t.countedQty !== '' ? t.countedQty : 'ยังไม่นับ'}</p>
+                                    <div>
+                                        ${t.status === 'completed' ? 
+                                            (t.hasDiscrepancy ? '<span class=\"text-[10px] bg-brand-100 text-brand-700 px-2.5 py-1 rounded-lg font-bold shrink-0\">⚠️ ส่วนต่าง</span>' : '<span class=\"text-[10px] bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-lg font-bold shrink-0\">✓ ตรงกัน</span>') :
+                                            '<span class=\"text-[10px] bg-slate-200 text-slate-600 px-2.5 py-1 rounded-lg font-medium shrink-0\">⏳ รอนับ</span>'
+                                        }
+                                    </div>
                                 </div>
-                                <div>
-                                    ${t.status === 'completed' ? 
-                                        (t.hasDiscrepancy ? '<span class=\"text-[10px] bg-brand-100 text-brand-700 px-2 py-1 rounded-lg font-bold shrink-0\">⚠️ ส่วนต่าง</span>' : '<span class=\"text-[10px] bg-emerald-100 text-emerald-700 px-2 py-1 rounded-lg font-bold shrink-0\">✓ ตรงกัน</span>') :
-                                        '<span class=\"text-[10px] bg-slate-200 text-slate-600 px-2 py-1 rounded-lg font-medium shrink-0\">⏳ รอนับ</span>'
-                                    }
-                                </div>
+
+                                <!-- ปุ่มกดจัดการของเถ้าแก่ -->
+                                ${t.status === 'completed' ? `
+                                    <div class="flex gap-2 pt-1 border-t border-slate-200/60">
+                                        <button onclick="requestReCount(${idx})" class="flex-1 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 font-bold py-2 px-3 rounded-xl text-[11px] transition shadow-xs flex items-center justify-center gap-1">
+                                            <span>🔄 สั่งนับใหม่</span>
+                                        </button>
+                                        <button onclick="updateGoogleSheet(${idx})" class="flex-1 ${t.updatedToSheet ? 'bg-emerald-600 text-white' : 'bg-slate-900 hover:bg-slate-800 text-white'} font-bold py-2 px-3 rounded-xl text-[11px] transition shadow-xs flex items-center justify-center gap-1">
+                                            <span>${t.updatedToSheet ? '✓ อัปเดตชีทแล้ว' : '📊 อัปเดตสต็อกใน Sheet'}</span>
+                                        </button>
+                                    </div>
+                                ` : ''}
                             </div>
                         `).join('')}
                     </div>
@@ -413,7 +482,7 @@
 
         function resetSystem() {
             appState.currentStep = 'task_list';
-            appState.tasks.forEach(t => { t.status = 'pending'; t.countedQty = ''; t.hasDiscrepancy = false; });
+            appState.tasks.forEach(t => { t.status = 'pending'; t.countedQty = ''; t.hasDiscrepancy = false; t.updatedToSheet = false; });
             renderApp();
         }
     </script>
