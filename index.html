@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ระบบนับสต็อกสินค้า - Pet Station</title>
+    <!-- Google Fonts & Tailwind CSS -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] },
+                    colors: {
+                        brand: { 50: '#fef2f2', 100: '#fee2e2', 500: '#ef4444', 600: '#dc2626', 700: '#b91c1c' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #f1f5f9; color: #1e293b; -webkit-tap-highlight-color: transparent; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="flex justify-center items-center min-h-screen bg-slate-200 p-0 sm:p-4">
+
+    <!-- Mobile Frame Container -->
+    <div class="w-full max-w-md bg-white sm:rounded-3xl sm:shadow-2xl h-screen sm:h-[844px] flex flex-col overflow-hidden relative border border-slate-300">
+        
+        <!-- Top Simulation Bar (สำหรับจำลองกดเข้าสู่ระบบจาก LINE) -->
+        <div class="bg-slate-900 text-white text-xs px-4 py-2 flex justify-between items-center z-50">
+            <span class="font-medium">📱 จำลองลิงก์ LINE Notify</span>
+            <div class="flex gap-2">
+                <button onclick="switchRole('staff')" id="btn-role-staff" class="px-2.5 py-1 rounded-full bg-slate-700 font-semibold transition">พนักงาน</button>
+                <button onclick="switchRole('owner_login')" id="btn-role-owner" class="px-2.5 py-1 rounded-full bg-brand-600 font-semibold transition">เถ้าแก่ (Login)</button>
+            </div>
+        </div>
+
+        <!-- APP HEADER -->
+        <header class="px-5 py-4 border-b border-slate-100 flex justify-between items-center bg-white sticky top-0 z-40">
+            <div>
+                <span id="app-badge" class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-brand-50 text-brand-600">Task นับสต็อก</span>
+                <h1 id="app-title" class="text-lg font-bold text-slate-800 mt-0.5">รายการที่ต้องตรวจสอบ</h1>
+            </div>
+            <div class="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-600 text-sm" id="user-avatar">
+                ST
+            </div>
+        </header>
+
+        <!-- MAIN CONTENT AREA -->
+        <main class="flex-1 overflow-y-auto p-4 space-y-4 hide-scrollbar bg-slate-50/50" id="main-container">
+            <!-- เนื้อหาจะถูกเรนเดอร์สลับตาม Role และสถานะ -->
+        </main>
+
+        <!-- NOTIFICATION TOAST (จำลอง LINE Notification) -->
+        <div id="line-toast" class="absolute top-12 left-4 right-4 bg-slate-900/95 text-white p-3.5 rounded-2xl shadow-lg transform -translate-y-24 opacity-0 transition-all duration-300 z-50 flex items-center gap-3 border border-slate-800">
+            <div class="w-9 h-9 rounded-full bg-brand-600 flex items-center justify-center text-white shrink-0 font-bold text-xs">LINE</div>
+            <div class="flex-1">
+                <p class="text-xs text-slate-400">แจ้งเตือนระบบนับสต็อก (Log_001)</p>
+                <p class="text-sm font-semibold">คลิกเพื่อเข้าสู่ระบบรายงานประจำวัน</p>
+            </div>
+            <button onclick="dismissToast()" class="text-xs bg-slate-800 px-3 py-1.5 rounded-lg text-slate-300 hover:text-white">ปิด</button>
+        </div>
+
+    </div>
+
+    <!-- SCRIPT LOGIC -->
+    <script>
+        const appState = {
+            role: 'staff', // 'staff', 'owner_login', 'owner_dashboard'
+            currentStep: 'task_list', 
+            tasks: [
+                { id: 'T-001', name: 'อาหารเม็ดแมว - สูตรลูกแมว 1kg', systemQty: 45, countedQty: '', unit: 'ถุง', status: 'pending', hasDiscrepancy: false },
+                { id: 'T-002', name: 'ทรายแมวเต้าหู้ธรรมชาติ 6L', systemQty: 12, countedQty: '', unit: 'ถุง', status: 'pending', hasDiscrepancy: false },
+                { id: 'T-003', name: 'ขนมแมวเลีย ซุปเปอร์ซอฟท์', systemQty: 120, countedQty: '', unit: 'ซอง', status: 'pending', hasDiscrepancy: false }
+            ],
+            selectedTaskIndex: null
+        };
+
+        window.addEventListener('DOMContentLoaded', () => {
+            renderApp();
+            setTimeout(() => { showToast(); }, 600);
+        });
+
+        function showToast() {
+            const toast = document.getElementById('line-toast');
+            toast.classList.remove('-translate-y-24', 'opacity-0');
+        }
+
+        function dismissToast() {
+            const toast = document.getElementById('line-toast');
+            toast.classList.add('-translate-y-24', 'opacity-0');
+        }
+
+        function switchRole(role) {
+            const btnStaff = document.getElementById('btn-role-staff');
+            const btnOwner = document.getElementById('btn-role-owner');
+            
+            if(role === 'staff') {
+                appState.role = 'staff';
+                appState.currentStep = 'task_list';
+                btnStaff.className = "px-2.5 py-1 rounded-full bg-brand-600 font-semibold transition text-white";
+                btnOwner.className = "px-2.5 py-1 rounded-full bg-slate-700 font-semibold transition text-slate-300";
+            } else {
+                appState.role = 'owner_login'; // พาไปหน้า Login ก่อน
+                appState.currentStep = 'login';
+                btnOwner.className = "px-2.5 py-1 rounded-full bg-brand-600 font-semibold transition text-white";
+                btnStaff.className = "px-2.5 py-1 rounded-full bg-slate-700 font-semibold transition text-slate-300";
+            }
+            renderApp();
+        }
+
+        function handleOwnerLogin(event) {
+            event.preventDefault();
+            const emailInput = document.getElementById('login-email').value.trim();
+            const passInput = document.getElementById('login-pass').value.trim();
+            const errorBox = document.getElementById('login-error');
+
+            // ตรวจสอบเงื่อนไขอีเมลและรหัสผ่านตามโจทย์
+            if (emailInput === 'Pets.station681@gmail.com' && passInput === '4321') {
+                appState.role = 'owner_dashboard';
+                appState.currentStep = 'dashboard';
+                renderApp();
+            } else {
+                errorBox.classList.remove('hidden');
+                errorBox.innerText = '⚠️ อีเมลหรือรหัสผ่านไม่ถูกต้อง (กรุณาใช้ Pets.station681@gmail.com / 4321)';
+            }
+        }
+
+        function renderApp() {
+            const container = document.getElementById('main-container');
+            const titleEl = document.getElementById('app-title');
+            const badgeEl = document.getElementById('app-badge');
+            const avatarEl = document.getElementById('user-avatar');
+
+            if (appState.role === 'owner_login') {
+                badgeEl.innerText = 'Log_002: ตรวจสอบสิทธิ์';
+                titleEl.innerText = 'เข้าสู่ระบบ (เถ้าแก่ / บัญชี)';
+                avatarEl.innerText = '🔐';
+                container.innerHTML = renderLoginScreen();
+                return;
+            }
+
+            if (appState.role === 'owner_dashboard') {
+                badgeEl.innerText = 'Dash_001: ผู้บริหาร';
+                titleEl.innerText = 'แดชบอร์ดสรุปผลสต็อก';
+                avatarEl.innerText = 'OWN';
+                container.innerHTML = renderOwnerDashboard();
+                return;
+            }
+
+            // Role: Staff
+            avatarEl.innerText = 'ST';
+            if (appState.currentStep === 'task_list') {
+                badgeEl.innerText = 'Task ที่ต้องตรวจ';
+                titleEl.innerText = 'รายการสินค้าต้องนับ';
+                container.innerHTML = renderStaffTaskList();
+            } else if (appState.currentStep === 'counting') {
+                badgeEl.innerText = 'บันทึกจำนวนนับจริง';
+                titleEl.innerText = 'ตรวจสอบสินค้า';
+                container.innerHTML = renderCountingScreen();
+            } else if (appState.currentStep === 'summary') {
+                badgeEl.innerText = 'สรุปผลสำเร็จ';
+                titleEl.innerText = 'ส่งข้อมูลเรียบร้อย';
+                container.innerHTML = renderSummaryScreen();
+            }
+        }
+
+        // --- RENDER FUNCTIONS ---
+
+        function renderLoginScreen() {
+            return `
+            <div class="py-4 space-y-5">
+                <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+                    <div class="text-center space-y-1">
+                        <div class="w-12 h-12 bg-brand-50 text-brand-600 rounded-2xl flex items-center justify-center mx-auto text-xl font-bold mb-2">🔑</div>
+                            <h2 class="text-base font-bold text-slate-800">เข้าสู่ระบบสำหรับเถ้าแก่</h2>
+                            <p class="text-xs text-slate-500">กรุณากรอกอีเมลและรหัสผ่านร้านเพื่อดูรายงาน</p>
+                    </div>
+
+                    <div id="login-error" class="hidden bg-rose-50 border border-rose-200 text-rose-600 text-xs p-3 rounded-xl font-medium"></div>
+
+                    <form onsubmit="handleOwnerLogin(event)" class="space-y-3.5 pt-2">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1.5 uppercase">อีเมลผู้ดูแลร้าน</label>
+                            <input type="email" id="login-email" required placeholder="Pets.station681@gmail.com" 
+                                class="w-full bg-slate-50 border border-slate-200 focus:border-brand-500 focus:bg-white text-slate-800 text-sm font-semibold px-4 py-3 rounded-xl outline-none transition">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1.5 uppercase">รหัสผ่าน (Password)</label>
+                            <input type="password" id="login-pass" required placeholder="••••" 
+                                class="w-full bg-slate-50 border border-slate-200 focus:border-brand-500 focus:bg-white text-slate-800 text-sm font-semibold px-4 py-3 rounded-xl outline-none transition">
+                        </div>
+
+                        <div class="pt-2">
+                            <button type="submit" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-brand-500/20 transition text-sm">
+                                เข้าสู่ระบบแดชบอร์ด
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="bg-slate-100 p-4 rounded-2xl border border-slate-200 text-xs text-slate-600 space-y-1">
+                    <p class="font-bold text-slate-700">📌 ข้อมูลทดสอบระบบ:</p>
+                    <p>• Email: <code class="bg-white px-1.5 py-0.5 rounded text-brand-600 font-bold border border-slate-200">Pets.station681@gmail.com</code></p>
+                    <p>• Password: <code class="bg-white px-1.5 py-0.5 rounded text-brand-600 font-bold border border-slate-200">4321</code></p>
+                </div>
+            </div>`;
+        }
+
+        function renderStaffTaskList() {
+            let html = `<div class="bg-brand-50 border border-brand-100 p-3.5 rounded-2xl mb-3 flex items-center justify-between">
+                <div>
+                    <p class="text-xs text-brand-700 font-medium">รอบวันที่ 10 พ.ย. 2026</p>
+                    <p class="text-sm font-bold text-brand-900">กรุณาตรวจนับสินค้าตามรายการด้านล่าง</p>
+                </div>
+                <span class="bg-brand-600 text-white text-xs px-2.5 py-1 rounded-xl font-bold">${appState.tasks.filter(t=>t.status==='completed').length}/${appState.tasks.length}</span>
+            </div>
+            <div class="space-y-3">`;
+
+            appState.tasks.forEach((task, idx) => {
+                const isCompleted = task.status === 'completed';
+                html += `
+                <div onclick="selectTask(${idx})" class="bg-white p-4 rounded-2xl border ${isCompleted ? 'border-emerald-200 bg-emerald-50/20' : 'border-slate-200 shadow-sm'} flex items-center justify-between cursor-pointer transition hover:border-brand-300">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl ${isCompleted ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-600'} flex items-center justify-center font-bold text-sm">
+                            ${isCompleted ? '✓' : idx + 1}
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-800">${task.name}</h3>
+                            <p class="text-xs text-slate-500 mt-0.5">ในระบบ: <span class="font-semibold text-slate-700">${task.systemQty} ${task.unit}</span></p>
+                        </div>
+                    </div>
+                    <div>
+                        ${isCompleted ? 
+                            `<span class="text-xs bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full font-bold">นับแล้ว (${task.countedQty})</span>` : 
+                            `<span class="text-xs bg-slate-900 text-white px-3 py-1.5 rounded-xl font-medium">นับสินค้า</span>`
+                        }
+                    </div>
+                </div>`;
+            });
+
+            html += `</div>`;
+
+            const allDone = appState.tasks.every(t => t.status === 'completed');
+            if (allDone) {
+                html += `
+                <div class="mt-6">
+                    <button onclick="finishTaskSubmission()" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-3.5 px-4 rounded-2xl shadow-lg shadow-brand-500/20 transition flex items-center justify-center gap-2">
+                        <span>ส่งรายงานทั้งหมดให้เถ้าแก่</span>
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                    </button>
+                </div>`;
+            }
+
+            return html;
+        }
+
+        function selectTask(index) {
+            appState.selectedTaskIndex = index;
+            appState.currentStep = 'counting';
+            renderApp();
+        }
+
+        function renderCountingScreen() {
+            const task = appState.tasks[appState.selectedTaskIndex];
+            return `
+            <div class="space-y-4">
+                <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                    <span class="text-xs font-semibold text-slate-400 uppercase">กำลังตรวจนับรายการ</span>
+                    <h2 class="text-base font-bold text-slate-800 mt-1">${task.name}</h2>
+                    <div class="mt-3 flex justify-between items-center text-sm border-t border-slate-100 pt-3">
+                        <span class="text-slate-500">ยอดสต็อกในระบบ:</span>
+                        <span class="font-bold text-slate-800 text-base">${task.systemQty} ${task.unit}</span>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-2">ระบุจำนวนนับจริงหน้าเคาน์เตอร์ / ชั้นวาง</label>
+                    <div class="relative">
+                        <input type="number" id="counted-input" value="${task.countedQty}" placeholder="กรอกจำนวน..." class="w-full bg-white border border-slate-200 focus:border-brand-500 text-slate-800 text-lg font-bold px-4 py-3.5 rounded-2xl outline-none transition shadow-sm">
+                        <span class="absolute right-4 top-4 text-sm font-semibold text-slate-400">${task.unit}</span>
+                    </div>
+                </div>
+
+                <div class="bg-brand-50 border border-brand-100 p-3.5 rounded-2xl text-xs text-brand-800 leading-relaxed">
+                    💡 <strong>คำแนะนำ:</strong> หากยอดนับจริงไม่ตรงกับในระบบ ระบบจะบันทึกส่วนต่างเพื่อส่งให้เถ้าแก่ตรวจสอบทันที
+                </div>
+
+                <div class="pt-4 flex gap-3">
+                    <button onclick="appState.currentStep='task_list'; renderApp();" class="flex-1 bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 font-bold py-3.5 rounded-2xl transition shadow-sm">ย้อนกลับ</button>
+                    <button onclick="saveCount(${task.systemQty})" class="flex-2 bg-slate-900 hover:bg-slate-800 text-white font-bold py-3.5 px-6 rounded-2xl shadow-lg transition">ยืนยันจำนวน</button>
+                </div>
+            </div>`;
+        }
+
+        function saveCount(sysQty) {
+            const inputVal = document.getElementById('counted-input').value;
+            if(inputVal === '') {
+                alert('กรุณากรอกจำนวนนับจริง');
+                return;
+            }
+            const val = parseInt(inputVal);
+            const task = appState.tasks[appState.selectedTaskIndex];
+            task.countedQty = val;
+            task.status = 'completed';
+            task.hasDiscrepancy = (val !== sysQty);
+
+            appState.currentStep = 'task_list';
+            renderApp();
+        }
+
+        function finishTaskSubmission() {
+            appState.currentStep = 'summary';
+            renderApp();
+        }
+
+        function renderSummaryScreen() {
+            return `
+            <div class="text-center py-6 space-y-4">
+                <div class="w-16 h-16 bg-brand-100 text-brand-600 rounded-full flex items-center justify-center mx-auto text-2xl font-bold">✓</div>
+                <h2 class="text-xl font-bold text-slate-800">ส่งรายงานสำเร็จเรียบร้อย</h2>
+                <p class="text-xs text-slate-500 max-w-xs mx-auto">ข้อมูลถูกบันทึกเข้าสู่ระบบกลาง และแจ้งเตือนไปยังบัญชีของเถ้าแก่เรียบร้อยแล้ว</p>
+
+                <div class="bg-white rounded-2xl p-4 border border-slate-200 text-left space-y-2 mt-4 shadow-sm">
+                    <p class="text-xs font-bold text-slate-400 uppercase">สรุปผลการตรวจสอบ</p>
+                    ${appState.tasks.map(t => `
+                        <div class="flex justify-between text-xs py-1 border-b border-slate-100 last:border-none">
+                            <span class="text-slate-600 truncate max-w-[180px]">${t.name}</span>
+                            <span class="font-bold ${t.hasDiscrepancy ? 'text-brand-600' : 'text-emerald-600'}">นับได้: ${t.countedQty} (${t.hasDiscrepancy ? '⚠️ ยอดต่าง' : 'ตรงกัน'})</span>
+                        </div>
+                    `).join('')}
+                </div>
+
+                <div class="pt-4 space-y-2">
+                    <button onclick="switchRole('owner_login')" class="w-full bg-brand-600 text-white font-bold py-3.5 rounded-2xl shadow-lg shadow-brand-500/20 transition">ดูมุมมองเถ้าแก่ (เข้าสู่ระบบ)</button>
+                    <button onclick="resetSystem()" class="w-full bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-3 rounded-2xl transition text-xs">เริ่มรอบใหม่ (พนักงาน)</button>
+                </div>
+            </div>`;
+        }
+
+        function renderOwnerDashboard() {
+            const totalItems = appState.tasks.length;
+            const completedItems = appState.tasks.filter(t => t.status === 'completed').length;
+            const discrepancies = appState.tasks.filter(t => t.hasDiscrepancy).length;
+
+            return `
+            <div class="space-y-4">
+                <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex justify-between items-center">
+                    <div>
+                        <span class="text-[10px] bg-brand-50 text-brand-600 px-2 py-0.5 rounded-full font-bold">ผู้ดูแลระบบสุงสุด</span>
+                        <h2 class="text-sm font-bold text-slate-800 mt-1">Pets.station681@gmail.com</h2>
+                    </div>
+                    <button onclick="switchRole('staff')" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-xl font-semibold transition">ออกจากระบบ</button>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm">
+                        <span class="text-xs text-slate-400 font-medium">สถานะการนับวันนี้</span>
+                        <p class="text-xl font-bold text-slate-800 mt-1">${completedItems}/${totalItems} <span class="text-xs font-normal text-slate-500">รายการ</span></p>
+                    </div>
+                    <div class="bg-brand-50 p-3.5 rounded-2xl border border-brand-100 shadow-sm">
+                        <span class="text-xs text-brand-600 font-medium">พบสินค้าส่วนต่าง</span>
+                        <p class="text-xl font-bold text-brand-600 mt-1">${discrepancies} <span class="text-xs font-normal text-brand-400">รายการ</span></p>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm space-y-3">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-sm font-bold text-slate-800">ประวัติการนับสต็อกล่าสุด (Dash_001)</h3>
+                        <span class="text-[10px] bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full font-bold">เรียลไทม์</span>
+                    </div>
+
+                    <div class="space-y-2 pt-1">
+                        ${appState.tasks.map(t => `
+                            <div class="p-3 bg-slate-50 rounded-xl flex justify-between items-center border border-slate-100">
+                                <div>
+                                    <p class="text-xs font-bold text-slate-800">${t.name}</p>
+                                    <p class="text-[10px] text-slate-500 mt-0.5">ในระบบ: ${t.systemQty} | นับจริง: ${t.countedQty !== '' ? t.countedQty : 'ยังไม่นับ'}</p>
+                                </div>
+                                <div>
+                                    ${t.status === 'completed' ? 
+                                        (t.hasDiscrepancy ? '<span class=\"text-[10px] bg-brand-100 text-brand-700 px-2 py-1 rounded-lg font-bold\">⚠️ ส่วนต่าง</span>' : '<span class=\"text-[10px] bg-emerald-100 text-emerald-700 px-2 py-1 rounded-lg font-bold\">✓ ตรงกัน</span>') :
+                                        '<span class=\"text-[10px] bg-slate-200 text-slate-600 px-2 py-1 rounded-lg font-medium\">⏳ รอนับ</span>'
+                                    }
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            </div>`;
+        }
+
+        function resetSystem() {
+            appState.currentStep = 'task_list';
+            appState.tasks.forEach(t => { t.status = 'pending'; t.countedQty = ''; t.hasDiscrepancy = false; });
+            renderApp();
+        }
+    </script>
+</body>
+</html>
