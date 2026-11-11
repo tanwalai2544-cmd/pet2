@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ระบบนับสต็อกสินค้า - Pet Station</title>
+    <title>ระบบนับสต็อกสินค้า - Pet Station (pet2)</title>
     <!-- Google Fonts & Tailwind CSS -->
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -32,7 +32,7 @@
         
         <!-- Top Simulation Bar -->
         <div class="bg-slate-900 text-white text-xs px-4 py-2 flex justify-between items-center z-50 shrink-0">
-            <span class="font-medium">📱 LINE Notify Link</span>
+            <span class="font-medium">📱 Pet Station (pet2) - พนักงาน</span>
             <div class="flex gap-2">
                 <button onclick="switchRole('staff')" id="btn-role-staff" class="px-2.5 py-1 rounded-full bg-brand-600 font-semibold transition text-white">พนักงาน</button>
                 <button onclick="switchRole('owner_login')" id="btn-role-owner" class="px-2.5 py-1 rounded-full bg-slate-700 font-semibold transition text-slate-300">เถ้าแก่ (Login)</button>
@@ -60,7 +60,7 @@
             <div class="w-9 h-9 rounded-full bg-brand-600 flex items-center justify-center text-white shrink-0 font-bold text-xs">LINE</div>
             <div class="flex-1">
                 <p class="text-xs text-slate-400">แจ้งเตือนระบบนับสต็อก (Log_001)</p>
-                <p class="text-sm font-semibold">มีรายการสินค้าต้องตรวจเช็คประจำวัน</p>
+                <p class="text-sm font-semibold">มีรายการสินค้าต้องตรวจเช็คประจำวันจากเถ้าแก่</p>
             </div>
             <button onclick="dismissToast()" class="text-xs bg-slate-800 px-3 py-1.5 rounded-lg text-slate-300 hover:text-white">ปิด</button>
         </div>
@@ -91,7 +91,7 @@
             { code: "8859720701016", name: "Smillie แมว รสแซลมอน", brand: "อาหารแมว", unit: "ถุง", price: 50 },
             { code: "8850011066999", name: "PurinaOne HairBall 380g.", brand: "อาหารแมว", unit: "ถุง", price: 140 },
             { code: "8850477002500", name: "Me-o Gold อินดอร์ 400g", brand: "อาหารแมว", unit: "ถุง", price: 99 },
-            { code: "8850477022140", name: "Zoi Cat ทูน่า 1กก..", brand: "อาหารแมว", unit: "ถุง", price: 60 },
+            { code: "8850477022140", name: "Zoi Cat ทูน่า 1กก.", brand: "อาหารแมว", unit: "ถุง", price: 60 },
             { code: "8851111045013", name: "Ginno ไก่และทูน่า 380 กรัม", brand: "อาหารแมว", unit: "ถุง", price: 65 },
 
             { code: "202403200003", name: "Alfafa สับเกรดลัคชู 500g.", brand: "สัตว์ฟันแทะ", unit: "ถุง", price: 75 },
@@ -131,7 +131,7 @@
                 originalSystemQty: Math.floor(Math.random() * 30) + 5,
                 countedQty: '',
                 needCount: index === 0 ? true : false,
-                requestedTimestamp: index === 0 ? '12 ต.ค. 2569, 08:30 น.' : '-',
+                requestedTimestamp: index === 0 ? '11 พ.ย. 2569, 08:30 น.' : '-',
                 countedTimestamp: '-',
                 updatedToSheet: false
             })),
@@ -185,13 +185,13 @@
             const passInput = document.getElementById('login-pass').value.trim();
             const errorBox = document.getElementById('login-error');
 
-            if (emailInput === 'Pets.station681@gmail.com' && passInput === '4321') {
+            if (emailInput === 'memi Pets.station681@gmail.com' && passInput === '4321') {
                 appState.role = 'owner_dashboard';
                 appState.currentStep = 'dashboard';
                 renderApp();
             } else {
                 errorBox.classList.remove('hidden');
-                errorBox.innerText = '⚠️ อีเมลหรือรหัสผ่านไม่ถูกต้อง (ใช้ Pets.station681@gmail.com / 4321)';
+                errorBox.innerText = '⚠️ อีเมลหรือรหัสผ่านไม่ถูกต้อง (ใช้ memi Pets.station681@gmail.com / 4321)';
             }
         }
 
@@ -305,14 +305,14 @@
                     <form onsubmit="handleOwnerLogin(event)" class="space-y-3">
                         <div>
                             <label class="block text-xs font-bold text-slate-700 mb-1 uppercase">อีเมลผู้ดูแลร้าน</label>
-                            <input type="email" id="login-email" required placeholder="Pets.station681@gmail.com" 
-                                class="w-full bg-slate-50 border border-slate-200 focus:border-brand-500 focus:bg-white text-slate-800 text-sm font-semibold px-4 py-3 rounded-xl outline-none transition">
+                            <input type="email" id="login-email" required placeholder="memi Pets.station681@gmail.com" 
+                                class="w-full bg-slate-50 border border-slate-200 focus:border-brand-500 focus:bg-white text-slate-800 text-sm font-semibold px-4 py-3 rounded-xl outline-none transition" value="memi Pets.station681@gmail.com">
                         </div>
 
                         <div>
                             <label class="block text-xs font-bold text-slate-700 mb-1 uppercase">รหัสผ่าน (Password)</label>
                             <input type="password" id="login-pass" required placeholder="••••" 
-                                class="w-full bg-slate-50 border border-slate-200 focus:border-brand-500 focus:bg-white text-slate-800 text-sm font-semibold px-4 py-3 rounded-xl outline-none transition">
+                                class="w-full bg-slate-50 border border-slate-200 focus:border-brand-500 focus:bg-white text-slate-800 text-sm font-semibold px-4 py-3 rounded-xl outline-none transition" value="4321">
                         </div>
 
                         <div class="pt-2">
@@ -321,12 +321,6 @@
                             </button>
                         </div>
                     </form>
-                </div>
-
-                <div class="bg-slate-100 p-3.5 rounded-2xl border border-slate-200 text-xs text-slate-600 space-y-1">
-                    <p class="font-bold text-slate-700">📌 ข้อมูลทดสอบระบบ:</p>
-                    <p>• Email: <code class="bg-white px-1 py-0.5 rounded text-brand-600 font-bold border border-slate-200">Pets.station681@gmail.com</code></p>
-                    <p>• Password: <code class="bg-white px-1 py-0.5 rounded text-brand-600 font-bold border border-slate-200">4321</code></p>
                 </div>
             </div>`;
         }
@@ -349,7 +343,7 @@
                 <div class="text-center py-12 bg-white rounded-2xl border border-slate-200 p-6 space-y-2">
                     <div class="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto text-xl font-bold">✓</div>
                     <h3 class="text-sm font-bold text-slate-800">ไม่มีรายการต้องนับในขณะนี้</h3>
-                    <p class="text-xs text-slate-500">รอเถ้าแก่สั่งการเพิ่มเติม</p>
+                    <p class="text-xs text-slate-500">รอเถ้าแก่สั่งการเพิ่มเติมจากหน้าคลังสินค้าหลัก</p>
                 </div>`;
             } else {
                 appState.tasks.forEach((task, idx) => {
@@ -521,25 +515,23 @@
                 <div class="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm flex justify-between items-center">
                     <div>
                         <span class="text-[10px] bg-brand-50 text-brand-600 px-2 py-0.5 rounded-full font-bold">ผู้ดูแลระบบสูงสุด</span>
-                        <h2 class="text-xs font-bold text-slate-800 mt-1">Pets.station681@gmail.com</h2>
+                        <h2 class="text-xs font-bold text-slate-800 mt-1">memi Pets.station681@gmail.com</h2>
                     </div>
                     <button onclick="switchRole('staff')" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-xl font-semibold transition">มุมมองพนักงาน</button>
                 </div>
 
                 <div class="bg-white rounded-2xl border border-slate-200 p-3.5 shadow-sm space-y-3">
                     <div class="flex justify-between items-center">
-                        <h3 class="text-xs font-bold text-slate-800">📦 คลังสินค้า (Google Sheets - 30 รายการ)</h3>
+                        <h3 class="text-xs font-bold text-slate-800">📦 คลังสินค้า (Google Sheets)</h3>
                         <span class="text-[10px] bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full font-bold">ซิงค์แล้ว</span>
                     </div>
 
-                    <!-- ช่องค้นหา (Search Bar) -->
                     <div class="relative">
                         <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">🔍</span>
-                        <input type="text" id="owner-search-input" value="${appState.ownerSearchQuery}" oninput="handleSearchInput(this.value)" placeholder="ค้นหาด้วยบาร์โค้ด 13 หลัก, ชื่อสินค้า, ประเภท..." 
+                        <input type="text" id="owner-search-input" value="${appState.ownerSearchQuery}" oninput="handleSearchInput(this.value)" placeholder="ค้นหาด้วยบาร์โค้ด, ชื่อสินค้า, ประเภท..." 
                             class="w-full bg-slate-50 border border-slate-200 focus:border-brand-500 focus:bg-white text-slate-800 text-xs font-medium pl-10 pr-4 py-3 rounded-xl outline-none transition">
                     </div>
 
-                    <!-- Filter ประเภทสินค้า -->
                     <div>
                         <p class="text-[10px] font-bold text-slate-400 uppercase mb-1.5">กรองตามประเภทสินค้า:</p>
                         <div class="flex gap-1.5 overflow-x-auto hide-scrollbar pb-1">
@@ -551,7 +543,6 @@
                         </div>
                     </div>
 
-                    <!-- Filter หน่วยสินค้า -->
                     <div>
                         <p class="text-[10px] font-bold text-slate-400 uppercase mb-1.5">กรองตามหน่วย:</p>
                         <div class="flex gap-1.5 overflow-x-auto hide-scrollbar pb-1">
@@ -563,7 +554,6 @@
                         </div>
                     </div>
 
-                    <!-- รายการสินค้าที่ถูกกรอง (Product List Container) -->
                     <div class="space-y-3 pt-2" id="owner-product-list">
                         ${renderProductCards(filteredTasks)}
                     </div>
@@ -582,7 +572,6 @@
                 const isDiff = diff !== 0;
                 const diffLabel = diff > 0 ? `เกินมา +${diff} ${t.unit}` : (diff < 0 ? `ขาด ${Math.abs(diff)} ${t.unit}` : 'ตรงกัน');
 
-                // กำหนดป้ายสถานะ
                 let statusBadge = '';
                 if (t.countedQty !== '') {
                     if (isDiff) {
@@ -596,7 +585,6 @@
                     statusBadge = `<span class="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-bold">✓ สต็อกปกติ</span>`;
                 }
 
-                // ปุ่มกดฝั่งเถ้าแก่: ถ้ายัังไม่นับและสั่งไปแล้ว ให้ขึ้นปุ่มเหลืองและ "ล็อก" (Disabled)
                 let actionButton = '';
                 if (t.countedQty !== '') {
                     actionButton = `
@@ -647,7 +635,6 @@
                         </div>
                     </div>
 
-                    <!-- แสดง Timestamp ประวัติเวลา -->
                     <div class="text-[10px] text-slate-500 bg-slate-100/80 px-2.5 py-1.5 rounded-lg space-y-0.5">
                         <p>🕒 สั่งให้นับเมื่อ: <span class="font-semibold text-slate-700">${t.requestedTimestamp}</span></p>
                         ${t.countedQty !== '' ? `<p>🕒 พนักงานส่งผลนับเมื่อ: <span class="font-semibold text-emerald-700">${t.countedTimestamp}</span></p>` : ''}
